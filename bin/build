@@ -1,0 +1,130 @@
+#!/bin/bash -
+#===============================================================================
+#
+#          FILE: build
+#
+#         USAGE: ./build
+#
+#   DESCRIPTION: Check that .env file is present for Travis-CI, CodeCov,
+#                and PYTHONPATH. Set the TRAVIS_BRANCH and run all
+#                checks on python package. Run `Black' to format all
+#                .py files. Inspect code for TypeErrors with `mypy'.
+#                Inspect code for unused attributes (that are not
+#                whitelisted in `whitelist.py'. Perform unittest with
+#                `pytest' and collect coverage data with `coverage'.
+#                Compile documentation with `Sphinx' and lint all .py
+#                files with `pylint'. Compile binary with `Pyinstaller'
+#                and add to PATH, removing any existing installation.
+#                Upload coverage data with with the `CodeCov' API and
+#                deploy compiled documentation to `gh-pages' if
+#                TRAVIS_BRANCH == master
+#
+#       OPTIONS: ---
+#  REQUIREMENTS: python3.8,pipenv (pipenv will cover all the pypi
+#                requirements)
+#          BUGS: ---
+#         NOTES: This script aims to follow Google's `Shell Style Guide'
+#                https://google.github.io/styleguide/shellguide.html
+#        AUTHOR: Stephen Whitlock (jshwi), stephen@jshwisolutions.com
+#  ORGANIZATION: Jshwi Solutions
+#       CREATED: 12/09/20 00:30:00
+#      REVISION: 1.0.0
+#
+# shellcheck disable=SC1090
+#===============================================================================
+BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(dirname "$BIN")"
+ENV="$REPO/.env"
+TEMPLATE_ENV="$BIN/env"
+LIB="$BIN/lib.sh"
+
+if git symbolic-ref --short HEAD >/dev/null 2>&1; then
+  TRAVIS_BRANCH=$(git symbolic-ref --short HEAD)
+else
+  TRAVIS_BRANCH=
+fi
+
+source "$LIB"
+
+
+# ======================================================================
+# List environment variables that are needed for this script
+#
+# Globals:
+#   TEMPLATE_ENV
+# Outputs:
+#   environment variables needed to run the build
+# Returns:
+#   `0' if all goes OK
+# ======================================================================
+list_env_vars () {
+  mapfile -t vars < "$TEMPLATE_ENV"
+  for var in "${vars[@]}"; do
+    echo "- $var"
+  done
+}
+
+
+# ======================================================================
+# Source the .env file if it exists, otherwise explain error and exit
+#
+# Globals:
+#   ENV
+# Outputs:
+#   environment variables needed to run the build
+# Returns:
+#   `0' if all goes OK
+# ======================================================================
+source_env () {
+  if [ -f "$ENV" ]; then
+    source "$ENV"
+  else
+    err \
+        "\`.env' file cannot be found" \
+        "cannot continue running with these values:"$'\n'"$(list_env_vars)"
+  fi
+}
+
+
+# ======================================================================
+# Stylize and announce process in cyan
+#
+# Globals:
+#   BOLD
+#   CYAN
+#   RESET
+# Arguments:
+#   Announcement as a string
+# Outputs:
+#   Stylized announcement
+# Returns:
+#   `0' if all goes OK
+# ======================================================================
+announce () {
+  echo
+  echo "${BOLD}${CYAN}+ --- $1 ---${RESET}"
+}
+
+
+# ======================================================================
+# Run the main functions in this package to confirm quality of repo and
+# build
+#
+# Outputs:
+#   Various process announcements called from lib functions
+# Returns:
+#   `0' if all goes OK
+# ======================================================================
+do_build () {
+  source_env || return "$?"
+  export TRAVIS_BRANCH
+  ( announce "make format" && format_py ) || return "$?"
+  ( announce "make typecheck" && inspect_types ) || return "$?"
+  ( announce "make vulture" && vulture ) || return "$?"
+  ( announce "make coverage" && run_test_cov ) || return "$?"
+  ( announce "make docs" && make_html ) || return "$?"
+  ( announce "make lint" && lint_files ) || return "$?"
+  ( announce "make install" && install_binary ) || return "$?"
+  ( announce "Uploading coverage to \`codecov'" && deploy_cov ) || return "$?"
+  ( announce "Push to \`gh-pages' if master" && deploy_docs ) || return "$?"
+}
