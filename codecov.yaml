@@ -1,0 +1,5 @@
+ignore:
+- "categorpy/__main__.py"
+- "categorpy/__init__.py"
+- "categorpy/src/__init__.py"
+- "categorpy/src/torrent/__init__.py"

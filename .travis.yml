@@ -1,0 +1,19 @@
+os: linux
+dist: focal
+language: python
+python: '3.8'
+install:
+- make install
+script:
+- make format
+- make lint
+- make typecheck
+- make vulture
+- make docs
+- make coverage
+after_success:
+- source bin/lib.sh && deploy_cov && deploy_docs
+- make uninstall
+env:
+  global:
+    secure: lYLdWT8tVArap/P6ckwNrARWUyWhmotXg+Jrye2roo0RdY6+sGWjTqDPGACWDsI1m6vucn1npsMDJmgDOwCy4nD0svhk7KDxCcqVssCNrjJBXgsE9M65JkVXLPmDvEl7yFKYlbTl3gqs7kg7r1oLn2it47hLXvosPPMyZ7Tcl+/fsEW793lMRXndEBajLUASsgLa6UpjSkERtjygjmD3qcKxum1R5NMTypifEX2Pa3+tAxxtPzl43vldrhje/tXr0o3QG0tFunPbeMWYbmnJIGu8ddrsTupsMJPtMbhWzm7GG9WZDBVckAc0Py/BCFBic03gtCW0rVC8ikKtysKKlPt8GC0vAJ5CUp3c3yaSdpB/NozqnKLHWe/47rcaqwjHcB6NtqIY1CNsl4r1g7f0FW1HX+Qnv/R9UfHh6OgDAOufylNbkw61PFBpvM8tJ5l3uPqm3MUdnfE0lBU/j017ZUmACWlKdXdMOdhKX9zfqQ6dZtfY6nYKtNKZBFjso3TwgS/bgP3FqTShTy/evaOGZUASIUMxu0wzFcIEThS+O01ub/0zzUgyxQA3jsOFhIl1n06EpByl/BWtf91nfyeJ6cNmcVxgsdLDvN0cArhZnxtKNhoOw14NVVj0t4scctU4IwUkEchAsjA/K/cQDmcj7w5LRTyIuUXoZG3ouxwkSlU=

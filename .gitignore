@@ -1,0 +1,12 @@
+*.egg-info/
+*.spec
+*build
+!/bin/build
+*coverage*
+*venv/
+.idea/
+.mypy_cache/
+.vscode/
+/.env
+__pycache__/
+dist/
