@@ -21,6 +21,8 @@ sphinxcontrib-programoutput = "==0.16"
 vulture = "==2.1"
 
 [packages]
+beautifulsoup4 = "==4.9.3"
+fuzzywuzzy = "==0.18.0"
 
 [requires]
 python_version = "3.8"

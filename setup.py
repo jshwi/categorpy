@@ -35,7 +35,7 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=("tests",)),
     include_package_data=True,
     zip_safe=True,
-    install_requires=[],
+    install_requires=["beautifulsoup4==4.9.3", "fuzzywuzzy==0.18.0"],
     python_requires=">=3.8",
     entry_points={"console_scripts": ["categorpy=categorpy.__main__:main"]},
 )
