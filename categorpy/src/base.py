@@ -6,6 +6,11 @@ import bs4
 
 from . import jsonmod
 
+CACHE = ".cache"
+IGNORE = os.path.join(CACHE, "ignore")
+BLACKLIST = os.path.join(CACHE, "blacklist")
+PACK = os.path.join(CACHE, "pack")
+
 
 class Print:
     """Print to stdout, stderr and print in color or no color"""
@@ -218,12 +223,6 @@ def get_uncategorized(obj, paths, dirname, report=False):
     return uncategorized, dead_link
 
 
-IGNORE = ".ignore"
-BLACKLIST = ".blacklist"
-CACHE = ".cache"
-PACK = ".pack"
-
-
 def get_object(path, parent):
     return recurse_json(path, {parent: {}}, parent, path)
 
@@ -241,4 +240,26 @@ def recurse_json(path, obj, parent, root):
                     obj[parent].update({key: val})
             else:
                 obj[parent].append(subvals)
+    return obj
+
+
+def parse_sub_obj(arg):
+    # Parse a key, value pair, separated by '='
+    obj = {}
+    items = arg.split("=")
+    key = items[0].strip()
+    if len(items) > 1:
+        value = "=".join(items[1:])
+        obj.update({key: value})
+    else:
+        obj.update({key: None})
+    return obj
+
+
+def parse_obj(items):
+    # Parse a series of key-value pairs and return a dictionary
+    obj = {}
+    if items:
+        for item in items:
+            obj.update(parse_sub_obj(item))
     return obj

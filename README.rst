@@ -16,11 +16,12 @@ Categorpy
 
 .. code-block:: console
 
-    usage: categorpy [-h] {json,match,report} [{json,match,report} ...]
+    usage: categorpy [-h] {json,match,report,configure}
+                     [{json,match,report,configure} ...]
 
     positional arguments:
-      {json,match,report}  select module
+      {json,match,report,configure} select module
 
     optional arguments:
-      -h, --help           show this help message and exit
+      -h, --help            show this help message and exit
 ..

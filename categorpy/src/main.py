@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from . import base, jsonmod, match, report
+from . import base, jsonmod, match, report, configure
 
 
 class Parser(argparse.ArgumentParser):
@@ -16,7 +16,7 @@ class Parser(argparse.ArgumentParser):
     def add_arguments(self):
         self.add_argument(
             "run",
-            choices=["json", "match", "report"],
+            choices=["json", "match", "report", "configure"],
             nargs="+",
             help="select module",
             default=[],
@@ -35,5 +35,7 @@ def main():
             match.main(sys.argv)
         elif prog == "report":
             report.main(sys.argv)
+        elif prog == "configure":
+            configure.main(sys.argv)
     except (KeyboardInterrupt, EOFError):
         print("\u001b[0;31;40mProcess Terminated\u001b[0;0m")
