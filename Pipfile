@@ -22,7 +22,7 @@ vulture = "==2.1"
 
 [packages]
 beautifulsoup4 = "==4.9.3"
-fuzzywuzzy = "==0.18.0"
+rapidfuzz = "==0.12.3"
 
 [requires]
 python_version = "3.8"
