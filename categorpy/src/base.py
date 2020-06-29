@@ -1,15 +1,20 @@
+import datetime
 import os
-import sys
 from urllib.request import Request, urlopen
 
 import bs4
-
-from . import jsonmod
+from appdirs import user_cache_dir, user_data_dir
 
 CACHE = ".cache"
-IGNORE = os.path.join(CACHE, "ignore")
-BLACKLIST = os.path.join(CACHE, "blacklist")
-PACK = os.path.join(CACHE, "pack")
+APPNAME = "categorpy"
+CACHEDIR = user_cache_dir(APPNAME)
+DATADIR = user_data_dir(APPNAME)
+LOGDIR = os.path.join(CACHEDIR, "log")
+BLACKLIST = os.path.join(DATADIR, "blacklist")
+IGNORE = os.path.join(DATADIR, "ignore")
+PACK = os.path.join(DATADIR, "pack")
+DATE = datetime.date.today().strftime("%Y.%m.%d")
+TIME = datetime.datetime.now().strftime("%H:%M:%S")
 
 
 class Print:
@@ -161,11 +166,11 @@ def parse_file(file):
         with open(file) as textio:
             list_ = textio.read().splitlines()
         return list_
-    except FileNotFoundError as err:
-        basename = os.path.basename(file)
-        Print.color(str(err), color=1)
-        print(f"Please ensure `{basename}' exists")
-        sys.exit(1)
+    except FileNotFoundError:
+        with open(file, "w") as _:
+            # python version of shell's `touch`
+            pass
+        return []
 
 
 def rm_dirnames(fullpath, dirname):
@@ -215,7 +220,7 @@ def get_uncategorized(obj, paths, dirname, report=False):
     categorized = []
     symlinks = []
     files = []
-    org = jsonmod.recurse_categorized(obj, categorized)
+    org = recurse_categorized(obj, categorized)
     for file in paths:
         symlinks.append(file) if os.path.islink(file) else files.append(file)
     uncategorized = filter_list(files, org, report=report, dirname=dirname)
@@ -263,3 +268,25 @@ def parse_obj(items):
         for item in items:
             obj.update(parse_sub_obj(item))
     return obj
+
+
+def recurse_categorized(obj, categorized):
+    if isinstance(obj, dict):
+        for key, val in obj.items():
+            categorized = subconditions(val, categorized)
+    elif isinstance(obj, list):
+        for val in obj:
+            categorized = subconditions(val, categorized)
+    else:
+        categorized.append(obj)
+    return categorized
+
+
+def subconditions(obj, categorized):
+    if isinstance(obj, dict):
+        categorized = recurse_categorized(obj, categorized)
+    elif isinstance(obj, list):
+        categorized = recurse_categorized(obj, categorized)
+    else:
+        categorized.append(obj)
+    return categorized

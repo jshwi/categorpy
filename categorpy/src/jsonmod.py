@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 
-from . import base
+from . import base, cache
 
 
 def argument_parser(*_):
@@ -23,47 +23,6 @@ def argument_parser(*_):
     return _args
 
 
-def subconditions(obj, categorized):
-    if isinstance(obj, dict):
-        categorized = recurse_categorized(obj, categorized)
-    elif isinstance(obj, list):
-        categorized = recurse_categorized(obj, categorized)
-    else:
-        categorized.append(obj)
-    return categorized
-
-
-def recurse_categorized(obj, categorized):
-    if isinstance(obj, dict):
-        for key, val in obj.items():
-            categorized = subconditions(val, categorized)
-    elif isinstance(obj, list):
-        for val in obj:
-            categorized = subconditions(val, categorized)
-    else:
-        categorized.append(obj)
-    return categorized
-
-
-def remove_ignored(uncategorized):
-    ignore_files = (base.IGNORE, base.BLACKLIST, base.PACK)
-    return [i for i in uncategorized if i not in ignore_files]
-
-
-def parse_into_json(ignore_file, uncategorized, obj, dead_links, parent):
-    if os.path.isfile(ignore_file):
-        ignore_list = base.parse_file(ignore_file)
-        uncategorized = base.filter_list(uncategorized, ignore_list)
-    uncategorized = remove_ignored(uncategorized)
-    if uncategorized:
-        obj[parent].update({"Uncategorized": uncategorized})
-    if dead_links:
-        obj[parent].update({"Dead-Link": dead_links})
-    if base.CACHE in obj[parent]:
-        del obj[parent][base.CACHE]
-    return json.dumps(obj, indent=4, sort_keys=True)
-
-
 def cache_index(paths):
     obj = {"file": [], "symlink": []}
     for file in paths:
@@ -82,8 +41,8 @@ def write_cache(index, obj):
 def read_cache(index):
     try:
         with open(index) as json_file:
-            cache = json.load(json_file)
-        return cache
+            json_cache = json.load(json_file)
+        return json_cache
     except (json.decoder.JSONDecodeError, FileNotFoundError):
         return {"file": [], "symlink": []}
 
@@ -104,8 +63,8 @@ def cacher(path, paths, parent):
     index = os.path.join(cachedir, parent)
     session = cache_index(paths)
     if os.path.isdir(cachedir):
-        cache = read_cache(index)
-        deleted = compare_cache(cache, session)
+        index_cache = read_cache(index)
+        deleted = compare_cache(index_cache, session)
         assume_blacklisted(path, deleted)
     else:
         os.mkdir(cachedir)
@@ -115,15 +74,13 @@ def cacher(path, paths, parent):
 def main(*argv):
     args = argument_parser(*argv)
     path = args.path
-    cache_run = args.cache
-    ignore_file = os.path.join(path, base.IGNORE)
+    paths = base.get_index(path)
     parent = os.path.basename(path)
-    obj = base.get_object(path, parent)
-    paths = base.get_index(path, os.path.join(path, base.IGNORE))
-    cacher(path, paths, parent)
-    if not cache_run:
-        uncategorized, dead_links = base.get_uncategorized(obj, paths, path)
-        result = parse_into_json(
-            ignore_file, uncategorized, obj, dead_links, parent
-        )
+    _cacher = cache.Cacher(path, paths, parent)
+    _cacher.cacher()
+    if not args.cache:
+        obj = base.get_object(path, parent)
+        uncategorized, deadlink = base.get_uncategorized(obj, paths, path)
+        json_parse = cache.JSONParse(uncategorized, obj, deadlink)
+        result = json_parse.parse(parent)
         print(result)
