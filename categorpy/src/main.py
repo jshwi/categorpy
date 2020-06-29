@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 
 from . import base, jsonmod, match, report, configure
@@ -28,7 +29,12 @@ def main():
     parser = Parser(*sys.argv[:1])
     args = parser.args
     prog = args.run[0]
+    appdirs = (base.CACHEDIR, base.DATADIR, base.LOGDIR)
+    userdirs = {k: os.path.isdir(k) for k in appdirs}
     try:
+        for key in userdirs:
+            if not userdirs[key]:
+                os.mkdir(key)
         if prog == "json":
             jsonmod.main(*sys.argv)
         elif prog == "match":

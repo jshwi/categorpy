@@ -1,12 +1,12 @@
 import argparse
+import errno
 import os
-import subprocess
 import sys
-from fnmatch import fnmatch
 
-from fuzzywuzzy import fuzz
+from appdirs import user_config_dir
+from rapidfuzz import fuzz
 
-from . import base
+from . import base, cache
 
 
 def argument_parser(*_):
@@ -38,13 +38,19 @@ def argument_parser(*_):
 
 
 class FuzzyFind:
-    def __init__(self, args):
-        self.matched = 0
-        self.unmatched = 0
-        self.blacklisted = 0
-        self.downloading = 0
-        self.blackobj = {}
-        self.args = args
+    def __init__(self, address, files, downloads, pack, blackobj):
+        self.address = address
+        self.files = files
+        self.downloads = downloads
+        self.pack = pack
+        self.count = {
+            "matched": 0,
+            "unmatched": 0,
+            "blacklisted": 0,
+            "downloading": 0,
+            "pack": 0,
+        }
+        self.blackobj = blackobj
 
     @staticmethod
     def match_up(listed, owned):
@@ -53,19 +59,9 @@ class FuzzyFind:
         test2 = token > 95
         return test1 or test2
 
-    def parse_blacklisted(self, black_list):
-        for file in black_list:
-            result = file.split("#")
-            try:
-                self.blackobj.update({result[0].strip(): result[1].strip()})
-            except IndexError:
-                self.blackobj.update({file: None})
-        return None
-
-    def iterate_owned(self, listed, files, downloads):
-        downloading = [d for d in os.listdir(downloads)]
+    def iterate_owned(self, listed):
         if listed in self.blackobj:
-            self.blacklisted += 1
+            self.count["blacklisted"] += 1
             blacklisted = base.Print.get_color(
                 "[BLACKLISTED]: " + listed, color=1
             )
@@ -73,81 +69,80 @@ class FuzzyFind:
                 blacklisted += f"  # {self.blackobj[listed]}"
             del self.blackobj[listed]
             return blacklisted
-        if listed in downloading:
-            self.downloading += 1
-            return base.Print.get_color(listed)
-        for file in files:
+        for file in self.files:
             if self.match_up(listed, file):
-                self.matched += 1
+                self.count["matched"] += 1
                 return base.Print.get_color(listed, color=5)
-        self.unmatched += 1
+        for download in self.downloads:
+            if self.match_up(listed, download):
+                self.count["downloading"] += 1
+                return base.Print.get_color(listed)
+        for pack in self.pack:
+            if self.match_up(listed, pack):
+                self.pack += 1
+                return base.Print.get_color(listed, color=4)
+        self.count["unmatched"] += 1
         return base.Print.get_color(listed, color=6)
 
-    def _print_header(self, list_):
-        width = len(max(list_, key=len))
-        base.Print.color(width * "=", color=2, bold=True)
-        print(
-            f"{base.Print.get_color(f'UNMATCHED', color=6, bold=True)}: "
-            f"{self.unmatched}    "
-            f"{base.Print.get_color(f'OWNED', color=5, bold=True)}: "
-            f"{self.matched}    "
-            f"{base.Print.get_color(f'DOWNLOADING', bold=True)}: "
-            f"{self.downloading}    "
-            f"{base.Print.get_color(f'BLACKLISTED', color=1, bold=True)}: "
-            f"{self.blacklisted}"
-        )
-        base.Print.color(width * "=", color=2, bold=True)
+    @staticmethod
+    def _container(string):
+        sep = base.Print.get_color(75 * "=", color=2, bold=True)
+        return f"{sep}\n{string}\n{sep}"
 
-    def append_globs(self, focus):
-        for file, comment in list(self.blackobj.items()):
-            for focus_file in focus:
-                if fnmatch(focus_file.casefold(), file.casefold()):
-                    self.blackobj.update({focus_file: comment})
+    def _format_header(self):
+        header = ""
+        types = {
+            "UNMATCHED": {"color": 6, "count": self.count["unmatched"]},
+            "OWNED": {"color": 5, "count": self.count["matched"]},
+            "DOWNLOADING": {"color": 3, "count": self.count["downloading"]},
+            "BLACKLISTED": {"color": 1, "count": self.count["blacklisted"]},
+            "PACKAGE": {"color": 4, "count": self.count["pack"]},
+        }
+        for head, obj in types.items():
+            header += base.Print.get_color(head, color=obj["color"], bold=True)
+            header += f": {obj['count']}    "
+        return header
+
+    def print_header(self):
+        header = self._format_header()
+        formatted = self._container(header)
+        print(formatted)
 
     @staticmethod
     def write_to_blacklist(write_blacklist, blacklist):
         with open(blacklist, "a") as file:
             file.write(write_blacklist + "\n")
 
-    def main(self):
-        match = []
-        basenames = []
-        path = self.args.path
-        blacklist = os.path.join(path, ".blacklist")
-        write_blacklist = self.args.blacklist
-        if write_blacklist:
-            self.write_to_blacklist(write_blacklist, blacklist)
-            sys.exit(0)
-        cachedir = os.path.join(path, ".cache")
-        if not os.path.isdir(cachedir):
-            os.mkdir(cachedir)
-        file = os.path.join(cachedir, "list")
-        downloads = self.args.downloads
-        if self.args.list:
-            subprocess.call(f'{self.args.list} "{file}"', shell=True)
-        if self.args.address:
-            base.scraper(self.args.address, file)
-        list_ = base.parse_file(file)
-        if os.path.isfile(blacklist):
-            black_list = base.parse_file(blacklist)
-            self.parse_blacklisted(black_list)
-            self.append_globs(list_)
-        files = base.get_index(path)
-        for file in files:
-            basenames.append(os.path.basename(file.strip()))
-        basenames = [
-            f
-            for f in basenames
-            if f not in (".ignore", ".blacklist", os.path.basename(path))
-        ]
-        for test_file in list_:
-            match.append(self.iterate_owned(test_file, basenames, downloads))
-        self._print_header(list_)
-        for result in match:
-            print(result)
+
+def parse_torrent_path(downloads_path):
+    if not os.path.isdir(downloads_path):
+        guess_dir = os.path.join(user_config_dir(downloads_path), "torrent")
+        if not os.path.isdir(guess_dir):
+            err = FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), downloads_path
+            )
+            base.Print.color(err, color=1)
+            print("cannot find selected torrent directory")
+            sys.exit(1)
+    return downloads_path
 
 
 def main(*argv):
-    args = argument_parser(*argv)
-    fuzzy_find = FuzzyFind(args)
-    fuzzy_find.main()
+    parser = argument_parser(*argv)
+    args = parser.parse_args()
+    path = args.path
+    downloads_path = parse_torrent_path(args.downloads)
+    downloads = cache.parse_torrents(downloads_path)
+    address = args.address
+    pack = base.parse_file(base.PACK)
+    ignore = base.parse_file(base.IGNORE)
+    files = base.get_index(path)
+    parse_datafile = cache.ParseDataFile(base.BLACKLIST, ignore)
+    blackobj = parse_datafile.dataobj
+    fuzzy_find = FuzzyFind(address, files, downloads, pack, blackobj)
+    if address:
+        base.scraper(args.address, base.IGNORE)
+    match = [fuzzy_find.iterate_owned(f) for f in ignore]
+    fuzzy_find.print_header()
+    for result in match:
+        print(result)
