@@ -43,25 +43,25 @@ def write_to_blacklist(write_blacklist, blacklist):
         file.write(write_blacklist + "\n")
 
 
-def add_entry(cachedir, obj):
+def add_entry(obj):
     for key, val in obj.items():
-        file_path = os.path.join(cachedir, key)
+        file_path = os.path.join(base.DATADIR, key)
         write_to_blacklist(val, file_path)
         base.Print.color(f"entry successfully added to {key}", color=2)
 
 
-def view_entries(cachedir, obj):
+def view_entries(obj):
     for key in obj:
-        file_path = os.path.join(cachedir, key)
+        file_path = os.path.join(base.DATADIR, key)
         with open(file_path) as file:
             file = file.read().splitlines()
             for line in file:
                 print(line)
 
 
-def edit_file(cachedir, obj):
+def edit_file(obj):
     for key, val in obj.items():
-        file_path = os.path.join(cachedir, key)
+        file_path = os.path.join(base.DATADIR, key)
         subprocess.call(f'{val} "{file_path}"', shell=True)
 
 
@@ -74,17 +74,15 @@ def main(*argv):
     args = parser.parse_args()
     action = args.action[0]
     file = args.file
-    path = args.path
     obj = base.parse_obj(file)
-    cachedir = os.path.join(path, ".cache")
     options = ("blacklist", "ignore", "pack")
     if valid_file_arg(obj, options):
         if action == "add":
-            add_entry(cachedir, obj)
+            add_entry(obj)
         elif action == "view":
-            view_entries(cachedir, obj)
+            view_entries(obj)
         elif action == "edit":
-            edit_file(cachedir, obj)
+            edit_file(obj)
     else:
         base.Print.color(
             "file argument must include one of the following:", color=1

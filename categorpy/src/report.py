@@ -92,6 +92,7 @@ class ParseReport:
                     return f"{key} {round(adjusted, 1)}"
             except ZeroDivisionError:
                 continue
+        return None
 
     def _get_sint(self, sint):
         size = self.byte_prefix(sint)

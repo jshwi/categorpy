@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from . import base, jsonmod, match, report, configure
+from . import base, configure, jsonmod, match, report
 
 
 class Parser(argparse.ArgumentParser):
