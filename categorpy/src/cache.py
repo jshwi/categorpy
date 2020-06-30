@@ -93,14 +93,13 @@ class ParseDataFile:
         self.dataobj = {}
         self.parse_blacklist()
 
-    def parse_blacklisted(self, content):
-        for entry in content:
-            value = None
-            result = entry.split("#")
-            if len(result) > 1:
-                value = result[1].strip()
-            self.dataobj.update({entry: value})
-        return None
+    def parse_blacklisted(self, black_list):
+        for file in black_list:
+            result = file.split("#")
+            try:
+                self.dataobj.update({result[0].strip(): result[1].strip()})
+            except IndexError:
+                self.dataobj.update({file: None})
 
     def append_globs(self):
         for file, comment in list(self.dataobj.items()):
@@ -133,8 +132,8 @@ def parse_torrents(path):
     for item in os.listdir(path):
         fullpath = os.path.join(path, item)
         with open(fullpath, "rb") as file:
-            bc = file.read()
-        obj = bencodepy.decode(bc)
+            bencode_file = file.read()
+        obj = bencodepy.decode(bencode_file)
         # noinspection PyTypeChecker
         result = obj[b"magnet-info"][b"display-name"]
         decoded = result.decode("utf-8").replace("+", " ")

@@ -37,7 +37,7 @@ def argument_parser(*_):
     return _args
 
 
-class FuzzyFind:
+class Find:
     def __init__(self, address, files, downloads, pack, blackobj):
         self.address = address
         self.files = files
@@ -79,7 +79,7 @@ class FuzzyFind:
                 return base.Print.get_color(listed)
         for pack in self.pack:
             if self.match_up(listed, pack):
-                self.pack += 1
+                self.count["pack"] += 1
                 return base.Print.get_color(listed, color=4)
         self.count["unmatched"] += 1
         return base.Print.get_color(listed, color=6)
@@ -137,12 +137,16 @@ def main(*argv):
     pack = base.parse_file(base.PACK)
     ignore = base.parse_file(base.IGNORE)
     files = base.get_index(path)
-    parse_datafile = cache.ParseDataFile(base.BLACKLIST, ignore)
+    files = [os.path.basename(f) for f in files]
+    if address:
+        base.scraper(args.address, base.HTTP)
+    http = base.parse_file(base.HTTP)
+    parse_datafile = cache.ParseDataFile(base.BLACKLIST, http)
     blackobj = parse_datafile.dataobj
-    fuzzy_find = FuzzyFind(address, files, downloads, pack, blackobj)
+    find = Find(address, files, downloads, pack, blackobj)
     if address:
         base.scraper(args.address, base.IGNORE)
-    match = [fuzzy_find.iterate_owned(f) for f in ignore]
-    fuzzy_find.print_header()
+    match = [find.iterate_owned(f) for f in ignore]
+    find.print_header()
     for result in match:
         print(result)

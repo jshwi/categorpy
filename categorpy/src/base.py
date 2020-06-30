@@ -13,7 +13,8 @@ LOGDIR = os.path.join(CACHEDIR, "log")
 BLACKLIST = os.path.join(DATADIR, "blacklist")
 IGNORE = os.path.join(DATADIR, "ignore")
 PACK = os.path.join(DATADIR, "pack")
-DATE = datetime.date.today().strftime("%Y.%m.%d")
+HTTP = os.path.join(DATADIR, "http")
+DATE = datetime.date.today().strftime("%Y%m%d")
 TIME = datetime.datetime.now().strftime("%H:%M:%S")
 
 

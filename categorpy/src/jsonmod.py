@@ -41,8 +41,8 @@ def write_cache(index, obj):
 def read_cache(index):
     try:
         with open(index) as json_file:
-            json_cache = json.load(json_file)
-        return json_cache
+            _cache = json.load(json_file)
+        return _cache
     except (json.decoder.JSONDecodeError, FileNotFoundError):
         return {"file": [], "symlink": []}
 
@@ -63,8 +63,8 @@ def cacher(path, paths, parent):
     index = os.path.join(cachedir, parent)
     session = cache_index(paths)
     if os.path.isdir(cachedir):
-        index_cache = read_cache(index)
-        deleted = compare_cache(index_cache, session)
+        _cache = read_cache(index)
+        deleted = compare_cache(_cache, session)
         assume_blacklisted(path, deleted)
     else:
         os.mkdir(cachedir)
@@ -78,7 +78,7 @@ def main(*argv):
     parent = os.path.basename(path)
     _cacher = cache.Cacher(path, paths, parent)
     _cacher.cacher()
-    if not args.cache:
+    if not cache:
         obj = base.get_object(path, parent)
         uncategorized, deadlink = base.get_uncategorized(obj, paths, path)
         json_parse = cache.JSONParse(uncategorized, obj, deadlink)
