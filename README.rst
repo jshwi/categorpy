@@ -16,51 +16,45 @@ Categorpy
 
 .. code-block:: console
 
-    usage: ctgpy [-h] {torrent,edit,report,clear} [{torrent,edit,report,clear} ...]
+    Turbo charged torrent scraper for ``transmission-daemon``
 
-    enter -h all/--help all to see help for all modules
+    Scrape entered url for torrents you don't have and automatically load them into the daemon.
 
-    positional arguments:
-      {torrent,edit,report,clear}
-                            select module
+    Blacklist files you are not interested in.
 
-    optional arguments:
-      -h, --help            show this help message and exit
-    usage: ctgpy torrent [-h] [-p PATH] [-t TORRENT_DIR] [-u URL] [-n NUMBER or LOW-HIGH] [-i]
+    Scans system for files you already own.
 
-    optional arguments:
-      -h, --help                                          show this help message and exit
-      -p PATH, --path PATH                                fullpath to directory where conflict files may
-                                                          belong - if a path is not entered the last
-                                                          path given will be used
-      -t TORRENT_DIR, --torrent-dir TORRENT_DIR           flag files currently downloading
-      -u URL, --url URL                                   web address to scrape (needs to be run at
-                                                          least once to generate a cache)
-      -n NUMBER or LOW-HIGH, --number NUMBER or LOW-HIGH  search an alternative page number to the
-                                                          current selection or loop through a range of
-                                                          page numbers e.g. 1-4
-      -i, --inspect                                       only information will be displayed and a
-                                                          download will not begin
-    usage: ctgpy edit [-h] {add,view,open} [{add,view,open} ...] FILE or FILE=STRING
-                      [FILE or FILE=STRING ...]
+    Acknowledges files which are already downloading.
+..
 
-    positional arguments:
-      {add,view,open}      choices: add a quick entry [PATH] [FILE=ENTRY] view entries [PATH] [FILE]
-                           open file in selected editor [PATH] [FILE=EDITOR]
-      FILE or FILE=STRING  file choices: blacklist, ignore, pack
+.. code-block:: console
+
+    usage: categorpy [-h] [-n] [-u HISTORY] [-p INT or START-END]
+
+    Run with no arguments to scrape the last entered url and begin seeding with `transmission-daemon'.
+    Tweak the page number of the url history with the `page' argument - enter either a single page
+    number or a range. If no url has been supplied prior, however, the program
+    will not be able to run without the `url' argument followed by the url you wish to scrape.
 
     optional arguments:
-      -h, --help           show this help message and exit
-    usage: ctgpy report [-h] [-r REVISION]
+      -h, --help                                    show this help message and exit
+      -n, --dry                                     only information will be displayed and a download
+                                                    will not begin
+      -u HISTORY, --url HISTORY                     scrape new url or the last url entered
+      -p INT or START-END, --page INT or START-END  scrape a single digit page number or a range e.g. 1-5
+..
 
-    optional arguments:
-      -h, --help                        show this help message and exit
-      -r REVISION, --revision REVISION  number of reports you would like to view (going backwards)
-    usage: ctgpy clear [-h] {history} [{history} ...]
+Quick start
 
-    positional arguments:
-      {history}   clear contents of data file
+.. code-block:: console
 
-    optional arguments:
-      -h, --help  show this help message and exit
+    $ # download torrents from one page
+    $ categorpy --url "https://www.exampleurl/s/page/1"
+
+    $ # download torrents from alternative page with saved history
+    $ categorpy --pages 4  # url now equals \
+    $ "https://www.exampleurl/s/page/4"
+
+    $ # download torrents from a range of of pages with cached history
+    $ categorpy torrent --pages 1-10
 ..
