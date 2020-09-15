@@ -24,7 +24,9 @@ vulture = "==2.1"
 "bencode.py" = "==4.0.0"
 appdirs = "==1.4.4"
 beautifulsoup4 = "==4.9.3"
+object-colors = "==1.0.8"
 rapidfuzz = "==0.12.3"
+transmission-rpc = "==3.2.1"
 
 [requires]
 python_version = "3.8"
