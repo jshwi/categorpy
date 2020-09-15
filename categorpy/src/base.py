@@ -1,103 +1,46 @@
+"""
+base
+====
+
+Functions and classes shared by all other modules
+"""
+import argparse
 import datetime
+import json
+import logging
 import os
-from urllib.request import Request, urlopen
 
-import bs4
-from appdirs import user_cache_dir, user_data_dir
+import appdirs
+import object_colors
 
-CACHE = ".cache"
 APPNAME = "categorpy"
-CACHEDIR = user_cache_dir(APPNAME)
-DATADIR = user_data_dir(APPNAME)
+
+TIME = datetime.datetime.now().strftime("T%H:%M:%S")
+DATE = datetime.date.today().strftime("%Y-%m-%d")
+SUFFIX = f"{DATE}{TIME}"
+CACHEDIR = appdirs.user_cache_dir(APPNAME)
 LOGDIR = os.path.join(CACHEDIR, "log")
+REPORTDIR = os.path.join(CACHEDIR, "report")
+DISPLAYDIR = os.path.join(CACHEDIR, "display")
+HISTORY = os.path.join(CACHEDIR, "history")
+HTTP = os.path.join(CACHEDIR, "http")
+MAGNET = os.path.join(CACHEDIR, "magnets")
+DATADIR = appdirs.user_data_dir(APPNAME)
 BLACKLIST = os.path.join(DATADIR, "blacklist")
-IGNORE = os.path.join(DATADIR, "ignore")
 PACK = os.path.join(DATADIR, "pack")
-HTTP = os.path.join(DATADIR, "http")
 DATE = datetime.date.today().strftime("%Y%m%d")
 TIME = datetime.datetime.now().strftime("%H:%M:%S")
+COLOR = object_colors.Color()
 
-
-class Print:
-    """Print to stdout, stderr and print in color or no color"""
-
-    @staticmethod
-    def _hack_newlines(args):
-        # to split, and retain the newline, add a newline for every
-        # newline that is not at the beginning of the string
-        # (splitlines will retain this one)
-        # because splitlines will split at the newline if there are
-        # multiple newlines there will be the split and the remaining
-        # new line, meaning this will actually be retained
-        # so revert thee newlines back to two to return a double newline
-        # we won't be using three newlines so it does not need to carry
-        # on
-        lines = list(args)
-        for count, line in enumerate(lines):
-            prepend = ""
-            if line != "" and line[0] == "\n":
-                prepend, line = "\n", line[1:]
-            line = line.replace("\n", "\n\n")
-            line = line.replace("\n\n\n", "\n\n")
-            lines[count] = prepend + line
-        return lines
-
-    @classmethod
-    def _place_newlines(cls, *args):
-        # place the newlines outside of the escape codes for the
-        # beginning and ending of a string
-        # This makes its a lot easier and more logical to write readable
-        # tests when lines aren't being split through their ASCII escape
-        # code pattern
-        args = cls._hack_newlines(args)
-        lines = "".join(args).splitlines()
-        for count, line in enumerate(lines):
-            if line == "":
-                lines[count] = "\n"
-        return lines
-
-    @staticmethod
-    def _color_strings(lines, color, bold):
-        # apply the ASCII escape code to a string multiple times if
-        # it contains a newline
-        # each line will have a starting and stop ASCII code
-        for count, line in enumerate(lines):
-            if line != "\n":
-                lines[count] = f"\u001b[{bold};3{color};40m{line}\u001b[0;0m"
-        return lines
-
-    @classmethod
-    def get_color(cls, *args, **kwargs):
-        """Returns a colored string, but does not print it
-
-        :param args:    String(s) to be printed in color
-        :key bold:      True or False: bool = False
-        :key color:     Ascii color code: int = 3 (yellow)
-        :returns:       String of selected color
-        """
-        bold = int(kwargs.get("bold", False))
-        color = kwargs.get("color", 3)
-        lines = cls._place_newlines(*args)
-        colored = cls._color_strings(lines, color, bold)
-        return "".join(colored)
-
-    @classmethod
-    def color(cls, *args, **kwargs):
-        """Prints get_color() to stdout in the terminal
-
-        :param args:    String(s) to be printed in color
-        :key bold:      True or False: bool = False
-        :key color:     Ascii color code: int = 3 (yellow)
-        :returns:       String of selected color
-        """
-        bold = kwargs.get("bold", False)
-        color = kwargs.get("color", 3)
-        print(cls.get_color(*args, bold=bold, color=color))
+COLOR.populate_colors()
 
 
 class Walk:
-    """Inherit this class to walk through the directory structure of
-    user notebooks for various class related processes
+    """
+    Walk through the directory passed with the root parameter
+
+    Inherit this class to pass a method and args for files we wish to
+    ignore
 
     :param root:        The root directory which the class will walk
     :param method:      The method that the class inheriting this class
@@ -113,8 +56,7 @@ class Walk:
         self._ignore = args
 
     def walk_files(self, root, files):
-        """Walk through the notes directory structure and perform
-        variable actions on directory files specifically
+        """Call the method within the file iteration
 
         :param root:    Top level of directory structure
         :param files:   List of files within directory structure
@@ -132,15 +74,14 @@ class Walk:
         - Once files are determined perform the required actions
         """
         if os.path.isdir(self._root):
-            for root, _, files in os.walk(self._root):
+            for root, _, files in os.walk(self._root, followlinks=True):
                 if self._ignore and root in self._ignore:
                     continue
                 self.walk_files(root, files)
 
 
-class IndexNotebook(Walk):
-    """Get all the directories in the notebook repository as a list
-    object of all absolute paths
+class IndexDir(Walk):
+    """Index the directory provided into a list of absolute paths
 
     :param root:        The root directory which the class will walk
     :param args:        Directories that the inheriting class wants to
@@ -148,8 +89,7 @@ class IndexNotebook(Walk):
     """
 
     def __init__(self, root, *args):
-        self.file_paths = []
-        self._root = root
+        self.pathlist = []
         super().__init__(root, self._get_list, *args)
         self._populate_list()
 
@@ -157,137 +97,215 @@ class IndexNotebook(Walk):
         self.walk_dirs()
 
     def _get_list(self, file):
-        # get list of files to display
-        self.file_paths.append(file)
-        self.file_paths = sorted(self.file_paths)
+        self.pathlist.append(file)
+        self.pathlist = sorted(self.pathlist)
 
 
-def parse_file(file):
-    try:
-        with open(file) as textio:
-            list_ = textio.read().splitlines()
-        return list_
-    except FileNotFoundError:
-        with open(file, "w") as _:
+class TextIO:
+    """Read-write processes relevant to this package
+
+    :param path:    Path to read from or to write to
+    :key method:    Method to manipulate strings when writing from a
+                    list. The method can be any function, or a string if
+                    it is a builtin function belonging to the str class
+    :key args:      A tuple of args for the method key
+    :key sort:      Default is True: call False if a list we are writing
+                    should not be sorted
+    """
+
+    def __init__(self, path, **kwargs):
+        self.path = path
+        self.ispath = os.path.isfile(path)
+        self.output = ""
+        self.object = {}
+        self.method = kwargs.get("method", None)
+        self.args = kwargs.get("args", ())
+        self.sort = kwargs.get("sort", True)
+
+    def _passive_dedupe(self, content):
+        return sorted(list(set(content))) if self.sort else content
+
+    def _output(self, content):
+        self.output = f"{content}\n"
+
+    def read_to_list(self):
+        """Read from a file and return it's content as a list
+
+        :return: The file's content split into a list
+        """
+        with open(self.path) as file:
+            content = file.read().splitlines()
+        return content
+
+    def _active_dedupe(self):
+        if self.ispath and self.sort:
+            content = self.read_to_list()
+            self._compile_string(content)
+            self.write_list(content)
+
+    def _execute(self, obj):
+        if self.method:
+            try:
+                return getattr(obj, self.method)(*self.args)
+            except TypeError:
+                try:
+                    function = self.method.rsplit(". ", 1)
+                    return getattr(self.method, function)(obj)
+                except AttributeError:
+                    pass
+        return obj
+
+    # noinspection PyArgumentList
+    def _compile_string(self, content):
+        self._output("\n".join(f"{self._execute(c)}" for c in content))
+
+    def _write_file(self, mode):
+        with open(self.path, mode) as file:
+            file.write(self.output)
+
+    def _mode(self, mode):
+        if mode == "a":
+            mode, self.ispath = (
+                ("a", self.ispath) if self.ispath else ("w", True)
+            )
+        elif mode == "w":
+            self.ispath = True
+        return mode
+
+    def append(self, content):
+        """Append an entry to a file
+
+        :param content: The string to append to a file
+        """
+        self._active_dedupe()
+        self._output(content)
+        self._write_file(self._mode("a"))
+
+    def write_list(self, content):
+        """Write content to a file, replacing all previous content that
+        might have been there
+
+        :param content: The list to write into the file
+        """
+        content = self._passive_dedupe(content)
+        self._compile_string(content)
+        self._write_file(self._mode("w"))
+
+    def write(self, content):
+        """Write content to a file, replacing all previous content that
+        might have been there
+
+        :param content: The list to write into the file
+        """
+        self.output = content
+        self._write_file(self._mode("w"))
+
+    def read(self):
+        """Read from a file and return a single string, formatted with
+        newlines
+        """
+        content = self.read_to_list()
+        self._compile_string(content)
+
+    def read_bytes(self):
+        """Read from a binary and return the content as bytes"""
+        with open(self.path, "rb") as file:
+            self.output = file.read()
+
+    def read_json(self):
+        """Read from a dictionary and return the content as a dictionary
+        object
+        """
+        try:
+            with open(self.path) as file:
+                self.object = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+
+    def append_json_array(self, *args):
+        """Write a tuple argument into a nested dictionary and write to
+        a json file with the first index being the key and the second
+        the value
+
+        :param args: A key value pair passed as a tuple
+
+        .. code-block:: console
+
+            (key, value)
+        ..
+        """
+        self.read_json()
+        for arg in args:
+            try:
+                self.object[arg[0]].append(arg[1])
+            except KeyError:
+                self.object[arg[0]] = [arg[1]]
+        with open(self.path, "w") as file:
+            file.write(json.dumps(self.object, indent=4))
+
+    def touch(self):
+        """Create an empty file"""
+        with open(self.path, "w") as _:
             # python version of shell's `touch`
             pass
-        return []
 
 
-def rm_dirnames(fullpath, dirname):
-    """Remote prior directories to the notebook directory
+def parse_file(path):
+    """Read a file into this session and attempt to resolve any
+    non-critical errors
 
-    :param fullpath:    Path of the file / directory for which the
-                        notes section and all prior will be removed
-    :param dirname:     Section of the path to take out
-    :return:            The edited path
+    If no content can be retrieved return an empty list
+
+    :param path:    the file path to read from
+    :return:        A list of the file's content
     """
-    return fullpath.replace(dirname, "")[1:]
-
-
-def strip(item, report=False, dirname=None):
-    return rm_dirnames(item, dirname) if report else os.path.basename(item)
+    textio = TextIO(path)
+    if os.path.isfile(path):
+        return textio.read_to_list()
+    parent = os.path.basename(path)
+    if not os.path.isdir(parent):
+        os.makedirs(parent)
+    textio.touch()
+    return []
 
 
 def get_index(path, *ignore):
-    ignore = list(ignore)
-    ignore.extend([".cache", ".blacklist", ".ignore", ".pack"])
-    index_files = IndexNotebook(path, *ignore)
-    return index_files.file_paths
+    """Get a list of a directories files all as absolute paths
+
+    Pass files to be ignored
+
+    :param path:    The path to get the files from
+    :param ignore:  Files that should not be added to the list
+    :return:        A list of absolute paths
+    """
+    index_files = IndexDir(path, *ignore)
+    return index_files.pathlist
 
 
-def filter_list(focus, unwanted, **kwargs):
-    report = kwargs.get("report", False)
-    dirname = kwargs.get("dirname", None)
-    return [
-        strip(x, report, dirname) for x in focus if strip(x) not in unwanted
-    ]
+def base_parser(module_name, *_, max_help_position=42):
+    module = COLOR.cyan.get(f"ctgpy {module_name}")
+    # noinspection PyTypeChecker
+    parser = argparse.ArgumentParser(
+        prog=module,
+        formatter_class=lambda prog: argparse.HelpFormatter(
+            prog, max_help_position=max_help_position
+        ),
+    )
+    return parser
 
 
-def scraper(search, path):
-    req = Request(search, headers={"User-Agent": "Mozilla/5.0"})
-    webpage = urlopen(req).read()
-    soup = bs4.BeautifulSoup(webpage, "html.parser")
-    results = []
-    for result in soup.find_all("a", "detLink"):
-        tag = result.get("href")
-        results.append(tag.split("/")[-1])
-    with open(path, "w") as file:
-        for result in results:
-            file.write(f"{result.replace('_', ' ')}\n")
-
-
-def get_uncategorized(obj, paths, dirname, report=False):
-    categorized = []
-    symlinks = []
-    files = []
-    org = recurse_categorized(obj, categorized)
-    for file in paths:
-        symlinks.append(file) if os.path.islink(file) else files.append(file)
-    uncategorized = filter_list(files, org, report=report, dirname=dirname)
-    dead_link = filter_list(symlinks, org, report=report, dirname=dirname)
-    return uncategorized, dead_link
-
-
-def get_object(path, parent):
-    return recurse_json(path, {parent: {}}, parent, path)
-
-
-def recurse_json(path, obj, parent, root):
-    for basename in os.listdir(path):
-        fullpath = os.path.join(path, basename)
-        if os.path.isfile(fullpath):
-            if root != path:
-                obj[parent].append(basename)
-        elif os.path.isdir(fullpath):
-            subvals = recurse_json(fullpath, {basename: []}, basename, root)
-            if root == path:
-                for key, val in subvals.items():
-                    obj[parent].update({key: val})
-            else:
-                obj[parent].append(subvals)
-    return obj
-
-
-def parse_sub_obj(arg):
-    # Parse a key, value pair, separated by '='
-    obj = {}
-    items = arg.split("=")
-    key = items[0].strip()
-    if len(items) > 1:
-        value = "=".join(items[1:])
-        obj.update({key: value})
+def logger(message, **kwargs):
+    loglevel = kwargs.get("loglevel", "info")
+    if loglevel == "warning":
+        logfunc = logging.warning
     else:
-        obj.update({key: None})
-    return obj
-
-
-def parse_obj(items):
-    # Parse a series of key-value pairs and return a dictionary
-    obj = {}
-    if items:
-        for item in items:
-            obj.update(parse_sub_obj(item))
-    return obj
-
-
-def recurse_categorized(obj, categorized):
-    if isinstance(obj, dict):
-        for key, val in obj.items():
-            categorized = subconditions(val, categorized)
-    elif isinstance(obj, list):
-        for val in obj:
-            categorized = subconditions(val, categorized)
-    else:
-        categorized.append(obj)
-    return categorized
-
-
-def subconditions(obj, categorized):
-    if isinstance(obj, dict):
-        categorized = recurse_categorized(obj, categorized)
-    elif isinstance(obj, list):
-        categorized = recurse_categorized(obj, categorized)
-    else:
-        categorized.append(obj)
-    return categorized
+        logfunc = logging.info
+    suffix = f"{DATE}.log"
+    filename = os.path.join(LOGDIR, f"{loglevel}-{suffix}")
+    logging.basicConfig(
+        filename=filename,
+        filemode="a",
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    logfunc(message)
