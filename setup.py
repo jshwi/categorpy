@@ -39,7 +39,6 @@ setuptools.setup(
         "appdirs==1.4.4",
         "beautifulsoup4==4.9.3",
         "bencode.py==4.0.0",
-        "object-colors==1.0.8",
         "pygments==2.7.1",
         "transmission-rpc==3.2.1",
     ],

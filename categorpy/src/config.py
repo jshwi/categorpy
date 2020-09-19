@@ -42,6 +42,9 @@ class Config:
             self.ini.write(file)
 
     def initialize_config(self):
+        """Read from an existing config or initialize a config file with
+        default values if one doesn't already exist
+        """
         if not os.path.isfile(self.configpath):
             self.write_new()
         self.read_existing()

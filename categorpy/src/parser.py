@@ -81,7 +81,7 @@ class Parser(argparse.ArgumentParser):
             except (FileNotFoundError, KeyError):
                 with redirect_stdout(sys.stderr):
                     print(
-                        f"\u001b[0;31;40myou have no search history\u001b[0;0m"
+                        "\u001b[0;31;40myou have no search history\u001b[0;0m"
                     )
                     self.print_help()
                 sys.exit(1)
