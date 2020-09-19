@@ -7,6 +7,7 @@ Parse data files and magnet-links
 import fnmatch
 import logging
 import os
+import pathlib
 import re
 
 # noinspection PyPackageRequirements
@@ -145,7 +146,7 @@ class Saved:
                     if fnmatch.fnmatch(focus_file.casefold(), file.casefold()):
                         self.obj.update({focus_file: comment})
                 except re.error as err:
-                    self.logger.warning(f"re.error - {err}\n{file}\n")
+                    self.logger.warning("re.error - %s\n%s\n", err, file)
                     break
 
     def _blacklisted(self):
@@ -177,3 +178,44 @@ class Saved:
         self.parse_file()
         self._blacklisted()
         self.append_globs(magnets)
+
+
+class Index:
+    """Index the files on the user's system and do not stop for
+    permission errors
+    """
+
+    def __init__(self, paths):
+        self.paths = paths
+        self.logger = logging.getLogger("debug")
+        self.files = []
+
+    def exception_handle(self, path):
+        """Do not stop scanning the system for the errors below
+
+        :param path: The ``"$PWD"``
+        """
+        while True:
+            try:
+                yield next(path)
+            except StopIteration:
+                self.logger.debug("", exc_info=True)
+                break
+            except (FileNotFoundError, OSError, PermissionError):
+                self.logger.debug("", exc_info=True)
+                continue
+
+    def _iterate_each(self, path):
+        pathobj = pathlib.Path(path)
+        self.files.extend(
+            [
+                str(f)
+                for f in self.exception_handle(pathobj.rglob("*"))
+                if os.path.isfile(str(f))
+            ]
+        )
+
+    def iterate(self):
+        """get list of system files"""
+        for path in self.paths:
+            self._iterate_each(path)

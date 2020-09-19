@@ -4,8 +4,19 @@ textio
 
 Write and read app data
 """
+import contextlib
 import json
+import logging
+import logging.handlers
 import os
+
+from pygments import highlight
+
+# noinspection PyUnresolvedReferences
+from pygments.formatters import Terminal256Formatter  # pylint: disable=E0611
+
+# noinspection PyUnresolvedReferences
+from pygments.lexers import YamlLexer  # pylint: disable=E0611
 
 
 class TextIO:
@@ -149,3 +160,76 @@ class TextIO:
             with open(self.path, "w") as _:
                 # python version of shell's `touch`
                 pass
+
+
+def make_logger(loglevel, logdir):
+    """Instantiate the global logging object containing several
+    combined characteristics
+    Create logging dir if one doesn't exist already
+    Ensure all loggers contain the format "/$logdir/$logname"
+    Ensure all loggers either display just the message or
+    date-time, loglevel, message
+    Ensure all loggers are configured to handle rotating logs
+    Do not print logs to stdout or stderr
+    """
+    logfile = os.path.join(logdir, f"{loglevel}.log")
+    logger = logging.getLogger(loglevel)
+    formatter = logging.Formatter(
+        fmt="[%(asctime)s] %(levelname)-8s %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+    )
+    filehandler = logging.handlers.WatchedFileHandler(logfile)
+
+    filehandler.setFormatter(formatter)
+
+    logger.setLevel(logging.INFO)
+
+    logger.addHandler(filehandler)
+
+
+class StreamLogger:
+    """Run as a context class using ``with`` to capture output stream
+
+    :param level: The loglevel to log the stream under
+    """
+
+    def __init__(self, name="info", level="INFO"):
+        self.logger = logging.getLogger(name)
+        self.name = self.logger.name
+        self.level = getattr(logging, level)
+        self._redirector = contextlib.redirect_stdout(self)
+
+    def write(self, msg):
+        """Will be called when used as a contextlib action
+
+        :param msg: The message to log - stdout stream
+        """
+        if msg and not msg.isspace():
+            self.logger.log(self.level, msg)
+
+    def flush(self):
+        """For when we are capturing stdout or stderr"""
+        pass  # pylint: disable=W0107
+
+    def __enter__(self):
+        self._redirector.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # let contextlib do any exception handling here
+        self._redirector.__exit__(exc_type, exc_val, exc_tb)
+
+
+def pygment_print(string):
+    """Print with ``pygments``
+
+    Read the string entered in method
+
+    Configure syntax highlighting for either shell or ini files and
+    processes
+
+    :param string:  What is to be printed
+    """
+    print(
+        highlight(string, YamlLexer(), Terminal256Formatter(style="monokai"))
+    )
