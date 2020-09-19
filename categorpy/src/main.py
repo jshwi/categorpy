@@ -4,6 +4,8 @@ main
 
 The entire package's main
 """
+import datetime
+import getpass
 import logging
 import os
 import pathlib
@@ -49,6 +51,44 @@ def log_fatal_error(hint):
     sys.exit(1)
 
 
+def log_auth_error(tally):
+    """Log a non-verbose message to the terminal and log the traceback
+    to a log file
+    """
+    logger = logging.getLogger("error")
+    error = (
+        "please update the `transmission-daemon' settings.json file and "
+        "try again"
+    )
+    logger.error(tally)
+    print(
+        f"\u001b[0;31;40mToo many incorrect password attempts\u001b[0;0m\n"
+        f"{error}",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
+def prior_auth(entered):
+    """Start tally of incorrect login attempts and log these as info to
+    the ``info.log`` file
+
+    On the 3rd attempt log this to the ``error.log`` file
+
+    Announce that the ``transmission-daemon`` settings.json file may
+    need updating if user does not know their password
+
+    :param entered: Number of times an incorrect password has been
+                    entered
+    """
+    logger = logging.getLogger("info")
+    print("incorrect password: please try again")
+    tally = f"{entered} incorrect password attempts"
+    if entered == 3:
+        log_auth_error(tally)
+    logger.info(tally)
+
+
 def instantiate_client(**kwargs):
     """Attempt to instantiate the ``transmission_rpc.Client`` class or
     log an error and explain the nature of the fault to the user before
@@ -58,16 +98,24 @@ def instantiate_client(**kwargs):
                     ``transmission-daemon`` settings.json file
     :return:        Instantiated ``transmission_rpc.Client`` class
     """
-    # noinspection PyBroadException
-    try:
-        with textio.StreamLogger("info"):
-            return transmission_rpc.Client(**kwargs)
-    except Exception:  # pylint: disable=W0703
-        log_fatal_error(
-            f"the process could not continue\n"
-            f"`transmission-daemon' may not be configured correctly\n\n"
-            f"please check {LOGDIR} for more information"
-        )
+    entered = 0
+    while True:
+        # noinspection PyBroadException
+        try:
+            with textio.StreamLogger("info"):
+                return transmission_rpc.Client(**kwargs)
+        except transmission_rpc.error.TransmissionError:
+            if entered:
+                prior_auth(entered)
+            kwargs["password"] = getpass.getpass("\nPassword: ")
+            entered += 1
+            continue
+        except Exception:  # pylint: disable=W0703
+            log_fatal_error(
+                f"the process could not continue\n"
+                f"`transmission-daemon' may not be configured correctly\n\n"
+                f"please check {LOGDIR} for more information"
+            )
 
 
 def load_client(unowned_magnets, client):
@@ -165,6 +213,14 @@ def settings_obj():
 
 
 def initialize_paths_file():
+    """Make default file if it doesn't exist and read the file for paths
+    that the user wants to scan for existing files to filter out of
+    download
+
+    Default path to scan is the user's home directory
+
+    :return: List of paths to scan for files
+    """
     paths = files.Saved(filename="paths", datadir=CONFIGDIR)
     filepath = paths.file
     filestatus = os.stat(filepath)
@@ -221,14 +277,7 @@ def initialize_index(magnets):
     # instantiate fuzzy find class with all the lists to match against
     # print report and cache report files
     # get list of unmatched files that can be downloaded
-    return find.Find(
-        cachedir=CACHEDIR,
-        logdir=LOGDIR,
-        blacklisted=blacklist.obj,
-        owned=idx.files,
-        downloading=torrents.obj,
-        pack=pack.files,
-    )
+    return find.Find(blacklisted=blacklist.obj, owned=idx.files,)
 
 
 def rpc_kwargs():
@@ -250,6 +299,31 @@ def intervals(pages):
     return int(numbers[0]), int(numbers[stopint]) + 1
 
 
+def record_hist(history, url):
+    """Add url search history to history cache file
+
+    Increment id from the last search
+
+    Add timestamp
+
+    :param history: History object instantiated from
+                    ``categorpy.TextIO``
+    :param url:     Url search or retrieved from prior history
+                    - depending on whether an argument was passed to the
+                    commandline
+    """
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+    try:
+        _id = history.object["history"][-1]["id"] + 1
+    except KeyError:
+        _id = 0
+
+    history.append_json_array(
+        ("history", {"id": _id, "timestamp": timestamp, "url": url})
+    )
+
+
 def main():
     """Single run or loop the torrent process
 
@@ -261,6 +335,7 @@ def main():
 
     histfile = os.path.join(CACHEDIR, "history")
     history = textio.TextIO(histfile, sort=False)
+    history.read_json()
     argparser = parser.Parser(history)
     args = argparser.args
     url = args.url
@@ -268,7 +343,7 @@ def main():
     parse_pages = files.PageNumbers(url)
     kwargs = rpc_kwargs()
 
-    history.append_json_array(("url", url))
+    record_hist(history, url)
 
     try:
         print("Enumerating objects...")
