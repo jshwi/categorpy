@@ -76,8 +76,8 @@ class Parser(argparse.ArgumentParser):
         """
         if not self.args.url:
             try:
-                self.history.read_json()
-                self.args.__dict__["url"] = self.history.object["url"][-1]
+                val = self.history.object["history"][-1]
+                self.args.__dict__["url"] = val["url"]
             except (FileNotFoundError, KeyError):
                 with redirect_stdout(sys.stderr):
                     print(

@@ -188,12 +188,9 @@ def make_logger(loglevel, logdir):
 
 
 class StreamLogger:
-    """Run as a context class using ``with`` to capture output stream
+    """Run as a context class using ``with`` to capture output stream"""
 
-    :param level: The loglevel to log the stream under
-    """
-
-    def __init__(self, name="info", level="INFO"):
+    def __init__(self, name="debug", level="DEBUG"):
         self.logger = logging.getLogger(name)
         self.name = self.logger.name
         self.level = getattr(logging, level)
