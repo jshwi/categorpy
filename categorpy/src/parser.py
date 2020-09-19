@@ -80,6 +80,8 @@ class Parser(argparse.ArgumentParser):
                 self.args.__dict__["url"] = self.history.object["url"][-1]
             except (FileNotFoundError, KeyError):
                 with redirect_stdout(sys.stderr):
-                    print(f"\u001b[0;31;40myou have no url history\u001b[0;0m")
+                    print(
+                        f"\u001b[0;31;40myou have no search history\u001b[0;0m"
+                    )
                     self.print_help()
                 sys.exit(1)

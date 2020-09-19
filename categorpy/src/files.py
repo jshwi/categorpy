@@ -5,14 +5,14 @@ parse
 Parse data files and magnet-links
 """
 import fnmatch
+import logging
 import os
-import pathlib
 import re
 
 # noinspection PyPackageRequirements
 import bencodepy
 
-from . import logger, textio
+from . import textio
 
 
 class Torrents:
@@ -123,17 +123,12 @@ class Saved:
     downloads
     """
 
-    def __init__(self, filename, datadir, logdir):
+    def __init__(self, filename, datadir):
         self.file = os.path.join(datadir, filename)
-        self.path = pathlib.Path(datadir)
         self.files = []
         self.obj = {}
-        self.logger = logger.Logger(logdir, loglevel="warning")
+        self.logger = logging.getLogger("warning")
         self.textio = textio.TextIO(self.file)
-        self.initialize_file()
-
-    def initialize_file(self):
-        self.path.mkdir(parents=True, exist_ok=True)
         self.textio.touch()
 
     def append_globs(self, magnets):
@@ -150,8 +145,7 @@ class Saved:
                     if fnmatch.fnmatch(focus_file.casefold(), file.casefold()):
                         self.obj.update({focus_file: comment})
                 except re.error as err:
-                    message = f"re.error - {err}\n{file}\n"
-                    self.logger.log(msg=message)
+                    self.logger.warning(f"re.error - {err}\n{file}\n")
                     break
 
     def _blacklisted(self):
