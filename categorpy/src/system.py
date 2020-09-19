@@ -4,10 +4,9 @@ parse
 
 Parse files into human readable data
 """
+import logging
 import os
 from pathlib import Path
-
-from . import logger
 
 
 class Index:
@@ -17,11 +16,11 @@ class Index:
     :param path: The starting path
     """
 
-    def __init__(self, path, logdir):
+    def __init__(self, path):
         self.path = path if path else "/"
         self.root = Path(path)
+        self.logger = logging.getLogger("debug")
         self.files = self.iterate()
-        self.logger = logger.Logger(logdir, loglevel="debug")
 
     def exception_handle(self, path):
         """Do not stop scanning the system for the errors below
@@ -32,10 +31,10 @@ class Index:
             try:
                 yield next(path)
             except StopIteration:
-                self.logger.log(exc_info=True)
+                self.logger.debug("", exc_info=True)
                 break
             except (FileNotFoundError, OSError, PermissionError):
-                self.logger.log(exc_info=True)
+                self.logger.debug("", exc_info=True)
                 continue
 
     def iterate(self):

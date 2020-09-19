@@ -4,8 +4,9 @@ main
 
 The entire package's main
 """
-import contextlib
+import logging
 import os
+import pathlib
 import sys
 
 import appdirs
@@ -16,25 +17,53 @@ from . import config, find, files, logger, parser, style, system, textio, web
 
 APPNAME = "categorpy"
 COLOR = object_colors.Color()
-
-# --- user appdirs ---
 CACHEDIR = appdirs.user_cache_dir(APPNAME)
 DATADIR = appdirs.user_data_dir(APPNAME)
 CONFIGDIR = appdirs.user_config_dir(APPNAME)
 LOGDIR = appdirs.user_log_dir(APPNAME)
 
-# --- cache files ---
-HISTORY = os.path.join(CACHEDIR, "history")
-MAGNET = os.path.join(CACHEDIR, "magnets")
 
 COLOR.populate_colors()
 
 
+def initialize_appdirs():
+    dirs = [CACHEDIR, DATADIR, CONFIGDIR, LOGDIR]
+    for _dir in dirs:
+        path = pathlib.Path(_dir)
+        path.mkdir(parents=True, exist_ok=True)
+
+
+def initialize_loggers():
+    loglevels = ["debug", "info", "warning", "error"]
+    for loglevel in loglevels:
+        logger.make_logger(loglevel, LOGDIR)
+
+
 def log_fatal_error(hint):
-    errlogger = logger.Logger(LOGDIR, loglevel="error")
-    errlogger.log(exc_info=True)
+    errlogger = logging.getLogger("error")
+    errlogger.error("", exc_info=True)
     print(f"\n{COLOR.red.get('Fatal error')}\n{hint}", file=sys.stderr)
     sys.exit(1)
+
+
+def load_torrents(unowned_magnets, unmatched, **kwargs):
+    # noinspection PyBroadException
+    try:
+        with logger.StreamLogger("info"):
+            client = transmission_rpc.Client(**kwargs)
+    except Exception:  # pylint: disable=W0703
+        log_fatal_error(
+            f"the process could not continue\n"
+            f"`transmission-daemon' may not be configured correctly\n\n"
+            f"please check {LOGDIR} for more information"
+        )
+    for magnet in unowned_magnets:
+        client.add_torrent(magnet)
+    newfiles = "- " + "\n- ".join(unmatched)
+    return (
+        f"The Following Unmatched Torrents Have Just Been Added:\n"
+        f"{newfiles}\n"
+    )
 
 
 def start_transmission(magnets, unmatched, **kwargs):
@@ -52,30 +81,12 @@ def start_transmission(magnets, unmatched, **kwargs):
     :param kwargs:      Keyword args for the `transmission_rpc` client
                         All blank values as of now to run with defaults
     """
-    error_logger = logger.Logger(LOGDIR, loglevel="error")
-    report_logger = logger.Logger(LOGDIR, loglevel="report")
+    infologger = logging.getLogger("info")
     unowned_magnets = [v for k, v in magnets.items() if k in unmatched]
+    info = "***There's Nothing to Add***\n"
     if unowned_magnets:
-        # noinspection PyBroadException
-        try:
-            with contextlib.redirect_stdout(error_logger):
-                client = transmission_rpc.Client(**kwargs)
-        except Exception:  # pylint: disable=W0703
-            log_fatal_error(
-                f"the process could not continue\n"
-                f"`transmission-daemon' may not be configured correctly\n\n"
-                f"please check {LOGDIR} for more information"
-            )
-        for magnet in unowned_magnets:
-            client.add_torrent(magnet)
-        newfiles = "- " + "\n- ".join(unmatched)
-        info = (
-            f"The Following Unmatched Torrents Have Just Been Added:"
-            f"\n- {newfiles}\n"
-        )
-    else:
-        info = "***There's Nothing to Add***\n"
-    report_logger.log(msg=f"\n{info}")
+        info = load_torrents(unowned_magnets, unmatched, **kwargs)
+    infologger.info(f"\n{info}")
     style.pygment_print(info)
 
 
@@ -117,20 +128,18 @@ def initialize_index(magnets):
     plaintext to be viewed individually
     """
     # get list of commented blacklisted files
-    blacklist = files.Saved(
-        filename="blacklist", datadir=DATADIR, logdir=LOGDIR
-    )
+    blacklist = files.Saved(filename="blacklist", datadir=DATADIR)
     blacklist.parse_blacklist(magnets)
 
     # get list of files in a pack
-    pack = files.Saved(filename="pack", datadir=DATADIR, logdir=LOGDIR)
+    pack = files.Saved(filename="pack", datadir=DATADIR)
     pack.parse_file()
 
     obj = settings_obj()
 
     download_dir = obj["download-dir"]
 
-    system_index = system.Index(download_dir, LOGDIR)
+    system_index = system.Index(download_dir)
 
     # get list of files currently downloading
     torrents = files.Torrents(download_dir)
@@ -194,7 +203,12 @@ def main():
 
     Collect args and persistent data (previous searched paths and urls)
     """
-    history = textio.TextIO(HISTORY, sort=False)
+    initialize_appdirs()
+
+    initialize_loggers()
+
+    history = os.path.join(CACHEDIR, "history")
+    history = textio.TextIO(history, sort=False)
     argparser = parser.Parser(history)
     args = argparser.args
     url = args.url
@@ -207,12 +221,12 @@ def main():
     try:
         print("Enumerating objects...")
 
-        scraper = web.ScrapeWeb()
+        scraper = web.ScrapeWeb(CACHEDIR)
         pages = pages if pages else parse_pages.get_page_number()
 
         scraper.process_request(url)
 
-        scraper.parse_magnets(MAGNET)
+        scraper.parse_magnets()
 
         fuzzy_find = initialize_index(scraper.names)
         start, stop = intervals(pages)
@@ -223,7 +237,7 @@ def main():
 
             scraper.process_request(url)
 
-            scraper.parse_magnets(MAGNET)
+            scraper.parse_magnets()
 
             torrent_proc(fuzzy_find, scraper.names, scraper.obj, url, **kwargs)
     except (KeyboardInterrupt, EOFError):

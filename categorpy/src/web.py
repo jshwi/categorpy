@@ -4,6 +4,7 @@ scrape
 
 Scrape the web and parse it's torrents
 """
+import os
 import re
 import sys
 from http import client
@@ -19,7 +20,8 @@ class ScrapeWeb:
     an object consisting of a named magnet key and raw magnet data value
     """
 
-    def __init__(self):
+    def __init__(self, cachedir):
+        self.magnet_file = os.path.join(cachedir, "magnets")
         self.soup = bs4.BeautifulSoup
         self.names = []
         self.magnets = []
@@ -40,32 +42,25 @@ class ScrapeWeb:
             print(_err[1].replace(">", ""))
             sys.exit(1)
 
-    @staticmethod
-    def _cache_results(path, results):
+    def _cache_results(self):
         cacheio = textio.TextIO(
-            path, method="replace", args=("_", " "), sort=False
+            self.magnet_file, method="replace", args=("_", " "), sort=False
         )
-        cacheio.write_list(results)
+        cacheio.write_list(self.magnets)
 
-    def scrape_magnets(self, magnetdata):
-        """Extract the usable data from the magnetdata
-
-        :param magnetdata: What has been scraped
-        """
+    def scrape_magnets(self):
+        """Extract the usable data from the magnetdata"""
         self.magnets = []  # reset
         for result in self.soup("a"):
             href = result.get("href")
             if href and (href.startswith("magnet")):
                 self.magnets.append(href)
-        self._cache_results(magnetdata, self.magnets)
+        self._cache_results()
 
-    def parse_magnets(self, magnetdata):
-        """Make sense of the scraped content
-
-        :param magnetdata: Scraped content
-        """
+    def parse_magnets(self):
+        """Make sense of the scraped content"""
         self.obj = {}  # no persistent data when run
-        self.scrape_magnets(magnetdata)
+        self.scrape_magnets()
         for magnet in self.magnets:
             eq_delim = "".join(magnet.split("=")[2:])
             last_delim = "".join(eq_delim.split("&tr")[:1])

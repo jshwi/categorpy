@@ -4,11 +4,12 @@ find
 
 System file matching
 """
+import logging
 import os
 import re
 from collections import OrderedDict
 
-from . import logger, textio
+from . import textio
 
 
 class Find:
@@ -21,7 +22,7 @@ class Find:
                         files)
     """
 
-    def __init__(self, cachedir, logdir, **kwargs):
+    def __init__(self, cachedir, **kwargs):
         self.types = OrderedDict(
             [
                 (
@@ -82,7 +83,7 @@ class Find:
         }
         self.cutoff = 70
         self.ratios = {}
-        self.logger = logger.Logger(logdir, loglevel="report")
+        self.logger = logging.getLogger("info")
         self.cachedir = cachedir
 
     exclude = ["and"]
@@ -262,7 +263,7 @@ class Find:
         try:
             header = self._header(url)
             report = "\n".join([self._iterate_owned(f) for f in magnet_names])
-            self.logger.log(msg=f"\n{header}\n{report}")
+            self.logger.info(f"\n{header}\n{report}")
             self._reset_counters()
         except ValueError:
             print("Search returned no results...")
