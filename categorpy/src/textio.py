@@ -38,10 +38,6 @@ class TextIO:
         self.object = {}
         self.method = kwargs.get("method", None)
         self.args = kwargs.get("args", ())
-        self.sort = kwargs.get("sort", True)
-
-    def _passive_dedupe(self, content):
-        return sorted(list(set(content))) if self.sort else content
 
     def _output(self, content):
         self.output = f"{content}\n"
@@ -82,17 +78,6 @@ class TextIO:
             )
         elif mode == "w":
             self.ispath = True
-        return mode
-
-    def write_list(self, content):
-        """Write content to a file, replacing all previous content that
-        might have been there
-
-        :param content: The list to write into the file
-        """
-        content = self._passive_dedupe(content)
-        self._compile_string(content)
-        self._write_file(self._mode("w"))
 
     def append(self, content):
         """Append an entry to a file
@@ -154,15 +139,8 @@ class TextIO:
         with open(self.path, "w") as file:
             file.write(json.dumps(self.object, indent=4))
 
-    def touch(self):
-        """Create an empty file"""
-        if not os.path.isfile(self.path):
-            with open(self.path, "w") as _:
-                # python version of shell's `touch`
-                pass
 
-
-def make_logger(loglevel, logdir):
+def make_logger(logdir, name, debug=False):
     """Instantiate the global logging object containing several
     combined characteristics
     Create logging dir if one doesn't exist already
@@ -172,8 +150,8 @@ def make_logger(loglevel, logdir):
     Ensure all loggers are configured to handle rotating logs
     Do not print logs to stdout or stderr
     """
-    logfile = os.path.join(logdir, f"{loglevel}.log")
-    logger = logging.getLogger(loglevel)
+    logfile = os.path.join(logdir, f"{name}.log")
+    logger = logging.getLogger(name)
     formatter = logging.Formatter(
         fmt="[%(asctime)s] %(levelname)-8s %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S",
@@ -182,7 +160,9 @@ def make_logger(loglevel, logdir):
 
     filehandler.setFormatter(formatter)
 
-    logger.setLevel(logging.INFO)
+    loglevel = logging.DEBUG if debug else logging.INFO
+
+    logger.setLevel(loglevel)
 
     logger.addHandler(filehandler)
 

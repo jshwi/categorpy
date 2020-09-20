@@ -26,6 +26,11 @@ categorpy
     :undoc-members:
     :show-inheritance:
 
+.. automodule:: categorpy.src.normalize
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 .. automodule:: categorpy.src.parser
     :members:
     :undoc-members:
