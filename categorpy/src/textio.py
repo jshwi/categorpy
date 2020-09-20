@@ -1,8 +1,8 @@
 """
-textio
-======
+categorpy.src.textio
+====================
 
-Write and read app data
+Write and read app data.
 """
 import contextlib
 import json

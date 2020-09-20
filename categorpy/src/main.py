@@ -1,8 +1,6 @@
 """
-main
-====
-
-The entire package's main
+categorpy.src.main
+==================
 """
 import datetime
 import getpass
@@ -277,7 +275,7 @@ def initialize_index(magnets):
     # instantiate fuzzy find class with all the lists to match against
     # print report and cache report files
     # get list of unmatched files that can be downloaded
-    return find.Find(blacklisted=blacklist.obj, owned=idx.files,)
+    return find.Find(blacklisted=blacklist.obj, owned=idx.files)
 
 
 def rpc_kwargs():
