@@ -7,12 +7,17 @@ Categorpy
 .. image:: https://travis-ci.com/jshwi/categorpy.svg?branch=master
     :target: https://travis-ci.com/jshwi/categorpy
     :alt: travis-ci.com
+.. image:: https://readthedocs.org/projects/categorpy/badge/?version=latest
+    :target: https://categorpy.readthedocs.io/en/latest/?badge=latest
+    :alt: readthedocs.org
 .. image:: https://img.shields.io/badge/License-MIT-blue.svg
     :target: https://lbesson.mit-license.org/
     :alt: mit
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
     :alt: black
+
+`Github Pages <https://jshwi.github.io/categorpy/index.html>`_
 
 .. code-block:: console
 
