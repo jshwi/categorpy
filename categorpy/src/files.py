@@ -4,16 +4,16 @@ parse
 
 Parse data files and magnet-links
 """
-import fnmatch
 import logging
 import os
 import pathlib
-import re
 
 # noinspection PyPackageRequirements
 import bencodepy
 
 from . import textio
+
+LOGGER = logging.getLogger("categorpy")
 
 
 class Torrents:
@@ -56,9 +56,9 @@ class Torrents:
                 result = obj[b"magnet-info"][b"display-name"]
                 return result.decode("utf-8").replace("+", " ")
             except KeyError:
-                return ""
+                return None
         except bencodepy.exceptions.BencodeDecodeError:
-            return ""
+            return None
 
     def parse_torrents(self):
         """Call to get the readable content from the bencode and create
@@ -74,10 +74,11 @@ class Torrents:
 
             # parse these bytes into human readable plaintext
             decoded = self._parse_bencode_object(bencode)
+            if decoded:
 
-            # update the torrent file object with the torrent file's
-            # name as the key and it's path as the value
-            self.obj.update({decoded: os.path.basename(path)})
+                # update the torrent file object with the torrent file's
+                # name as the key and it's path as the value
+                self.obj.update({decoded: os.path.basename(path)})
 
 
 class PageNumbers:
@@ -119,67 +120,6 @@ class PageNumbers:
         return self.ulist[self.page_index] if self.ispage else "0"
 
 
-class Saved:
-    """Extract information from the saved data-file to influence present
-    downloads
-    """
-
-    def __init__(self, filename, datadir):
-        self.file = os.path.join(datadir, filename)
-        self.files = []
-        self.obj = {}
-        self.logger = logging.getLogger("warning")
-        self.textio = textio.TextIO(self.file)
-        self.textio.touch()
-
-    def append_globs(self, magnets):
-        """Append files matching globs which are supported in certain
-        data-files
-
-        :param magnets: Match the globs against the magnet-files to
-                        filter out the unwanted magnets
-        """
-        for file, comment in list(self.obj.items()):
-            for focus_file in magnets:
-                try:
-                    file = file.replace(" ", "_")
-                    if fnmatch.fnmatch(focus_file.casefold(), file.casefold()):
-                        self.obj.update({focus_file: comment})
-                except re.error as err:
-                    self.logger.warning("re.error - %s\n%s\n", err, file)
-                    break
-
-    def _blacklisted(self):
-        for file in self.files:
-            result = file.split("#")
-            try:
-                self.obj.update({result[0].strip(): result[1].strip()})
-            except IndexError:
-                self.obj.update({file: None})
-
-    def parse_file(self):
-        """Read a file into this session and attempt to resolve any
-        non-critical errors
-
-        If no content can be retrieved return an empty list
-
-        :return:        A list of the file's content
-        """
-        lis = self.textio.read_to_list()
-        self.files.extend(lis)
-
-    def parse_blacklist(self, magnets):
-        """Parse the blacklist to exclude magnets which have been
-        blacklisted
-
-        :param magnets: Magnets that will be loaded to ``transmission``
-                        if they have not been blacklisted
-        """
-        self.parse_file()
-        self._blacklisted()
-        self.append_globs(magnets)
-
-
 class Index:
     """Index the files on the user's system and do not stop for
     permission errors
@@ -187,32 +127,12 @@ class Index:
 
     def __init__(self, paths):
         self.paths = paths
-        self.logger = logging.getLogger("debug")
         self.files = []
-
-    def exception_handle(self, path):
-        """Do not stop scanning the system for the errors below
-
-        :param path: The ``"$PWD"``
-        """
-        while True:
-            try:
-                yield next(path)
-            except StopIteration:
-                self.logger.debug("", exc_info=True)
-                break
-            except (FileNotFoundError, OSError, PermissionError):
-                self.logger.debug("", exc_info=True)
-                continue
 
     def _iterate_each(self, path):
         pathobj = pathlib.Path(path)
         self.files.extend(
-            [
-                str(f)
-                for f in self.exception_handle(pathobj.rglob("*"))
-                if os.path.isfile(str(f))
-            ]
+            [str(f) for f in pathobj.rglob("*") if os.path.isfile(str(f))]
         )
 
     def iterate(self):

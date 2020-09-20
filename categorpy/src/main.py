@@ -28,13 +28,12 @@ def initialize_appdirs():
         path.mkdir(parents=True, exist_ok=True)
 
 
-def initialize_loggers():
+def initialize_loggers(debug):
     """Initialize the loggers that can be retrieved with
     ``logging.getLogger(<name>)``
     """
-    loglevels = ["debug", "info", "warning", "error"]
-    for loglevel in loglevels:
-        textio.make_logger(loglevel, LOGDIR)
+    textio.make_logger(LOGDIR, APPNAME, debug)
+    textio.make_logger(LOGDIR, "error")
 
 
 def log_fatal_error(hint):
@@ -159,7 +158,7 @@ def load_torrents(unowned_magnets, unmatched, **kwargs):
     return announce_added(unmatched)
 
 
-def start_transmission(magnets, unmatched, **kwargs):
+def run_transmission(magnets, unmatched, **kwargs):
     """Compare magnet files parsed from bencode text into plaintext
     against existing files on the user's system
 
@@ -176,9 +175,10 @@ def start_transmission(magnets, unmatched, **kwargs):
     """
     logger = logging.getLogger("info")
     unowned_magnets = [v for k, v in magnets.items() if k in unmatched]
-    info = "***There's Nothing to Add***\n"
     if unowned_magnets:
         info = load_torrents(unowned_magnets, unmatched, **kwargs)
+    else:
+        info = "***There's Nothing to Add***\n"
     logger.info("\n%s", info)
     textio.pygment_print(info)
 
@@ -219,63 +219,12 @@ def initialize_paths_file():
 
     :return: List of paths to scan for files
     """
-    paths = files.Saved(filename="paths", datadir=CONFIGDIR)
-    filepath = paths.file
-    filestatus = os.stat(filepath)
+    _paths = os.path.join(CONFIGDIR, "paths")
+    pathio = textio.TextIO(_paths)
+    filestatus = os.stat(_paths)
     if not filestatus.st_size:
-        pathio = textio.TextIO(filepath)
         pathio.write(str(pathlib.Path.home()))
-    paths.parse_file()
-    return paths.files
-
-
-def initialize_index(magnets):
-    """Gather lists of several categories of files that we do not want
-    the scraper to add to the torrent client
-
-        - system files:         Any files that already exist on the
-                                system
-        - files downloading:    Parse torrent files for their name and
-                                determine that this file has already
-                                been added to the torrent client
-        - blacklisted files:    Files or regular expressions added to
-                                the `blacklist` file
-        - packaged torrents:    Torrents that have been downloaded as
-                                part of a directory, but are not in that
-                                directory anymore
-
-    Once a list comprised of unmatched files have been scraped and
-    filtered either begin downloading the torrents or inspect the
-    results of a session with the `inspect` argument
-
-    Write reports in color to be viewed with this package or in
-    plaintext to be viewed individually
-    """
-    # get list of commented blacklisted files
-    blacklist = files.Saved(filename="blacklist", datadir=CONFIGDIR)
-    blacklist.parse_blacklist(magnets)
-
-    # get list of files in a pack
-    pack = files.Saved(filename="pack", datadir=CONFIGDIR)
-    pack.parse_file()
-
-    obj = settings_obj()
-
-    download_dir = obj["download-dir"]
-
-    paths = initialize_paths_file()
-    idx = files.Index(paths)
-
-    idx.iterate()
-
-    # get list of files currently downloading
-    torrents = files.Torrents(download_dir)
-    torrents.parse_torrents()
-
-    # instantiate fuzzy find class with all the lists to match against
-    # print report and cache report files
-    # get list of unmatched files that can be downloaded
-    return find.Find(blacklisted=blacklist.obj, owned=idx.files)
+    return pathio.read_to_list()
 
 
 def rpc_kwargs():
@@ -322,6 +271,63 @@ def record_hist(history, url):
     )
 
 
+def start_transmission(pages, url):
+    """Loop over page numbers entered for url and load up
+     ``transmission-rpc``
+
+    :param pages:   Single page or range of pages
+    :param url:     Url to scrape for magnets and load
+                    ``transmission-daemon`` with
+    """
+    print("Enumerating objects...")
+    parse_pages = files.PageNumbers(url)
+    kwargs = rpc_kwargs()
+    pages = pages if pages else parse_pages.get_page_number()
+
+    scraper = web.ScrapeWeb()
+
+    obj = settings_obj()
+    blacklist_file = os.path.join(CONFIGDIR, "blacklist")
+    blacklistio = textio.TextIO(blacklist_file)
+    blacklist = blacklistio.read_to_list()
+    download_dir = obj["download-dir"]
+    torrents = files.Torrents(download_dir)
+    paths = initialize_paths_file()
+    idx = files.Index(paths)
+
+    torrents.parse_torrents()
+
+    idx.iterate()
+
+    # instantiate fuzzy find class with all the lists to match against
+    # print report and cache report files
+    # get list of unmatched files that can be downloaded
+    findobj = find.Find(
+        owned=idx.files, blacklisted=blacklist, downloading=torrents.files,
+    )
+
+    start, stop = intervals(pages)
+
+    for i in range(start, stop):
+        if parse_pages.ispage:
+            url = parse_pages.select_page_number(i)
+
+        scraper.process_request(url)
+
+        scraper.scrape_magnets()
+
+        scraper.parse_magnets()
+
+        scraped_obj = scraper.obj
+
+        scraped_names = list(scraped_obj.keys())
+
+        # match the above lists against the scraped files
+        findobj.iterate(scraped_names)
+
+        run_transmission(scraped_obj, findobj.found, **kwargs)
+
+
 def main():
     """Single run or loop the torrent process
 
@@ -329,51 +335,21 @@ def main():
     """
     initialize_appdirs()
 
-    initialize_loggers()
-
     histfile = os.path.join(CACHEDIR, "history")
     history = textio.TextIO(histfile, sort=False)
+
     history.read_json()
+
     argparser = parser.Parser(history)
     args = argparser.args
     url = args.url
-    pages = args.pages
-    parse_pages = files.PageNumbers(url)
-    kwargs = rpc_kwargs()
+    debug = args.debug
+
+    initialize_loggers(debug)
 
     record_hist(history, url)
 
     try:
-        print("Enumerating objects...")
-
-        scraper = web.ScrapeWeb(CACHEDIR)
-        pages = pages if pages else parse_pages.get_page_number()
-
-        scraper.process_request(url)
-
-        scraper.parse_magnets()
-
-        names = scraper.names
-        fuzzy_find = initialize_index(names)
-        start, stop = intervals(pages)
-
-        for i in range(start, stop):
-            if parse_pages.ispage:
-                url = parse_pages.select_page_number(i)
-
-            scraper.process_request(url)
-
-            scraper.parse_magnets()
-
-            # match the above lists against the scraped files
-            fuzzy_find.iterate(names)
-
-            # initialize downloads for unmatched files
-            # announce files added to the client
-            # do not print report - too much text for multiple scrapes
-            # the report can be viewed by running the report argument
-            unmatched = fuzzy_find.get_matches("unowned")
-
-            start_transmission(scraper.obj, unmatched, **kwargs)
+        start_transmission(args.pages, url)
     except (KeyboardInterrupt, EOFError):
         print("\u001b[0;31;40mProcess Terminated\u001b[0;0m")

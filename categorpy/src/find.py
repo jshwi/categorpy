@@ -4,56 +4,13 @@ categorpy.src.find
 
 Find, match and reject.
 """
+import fnmatch
 import logging
 import re
 
+from . import normalize
 
-class Normalize:
-    """Format strings to a uniform syntax
-
-    :param string: String to manipulate and use
-    """
-
-    def __init__(self, string):
-        self.string = string
-
-    def normalize_whitespace(self):
-        """Convert all instances of dots and underscores to separate
-        words as whitespace
-
-        :return: Human readable sentence separated by whitespace
-        """
-        self.string = self.string.replace("_", " ")
-        self.string = self.string.replace(".", " ")
-
-    def normalize_non_alpha_numeric(self):
-        """Remove such characters as pluses and minuses etc. and replace
-        with whitespace
-        """
-        self.string = re.sub(r"([^\s\w]|_)+", " ", self.string)
-
-    def set_lowercase(self):
-        """Remove all case variances"""
-        self.string = self.string.casefold()
-
-    def deduplicate_whitespace(self):
-        """If several characters have been replaced with whitespace then
-        multiple spaces in the sentence can throw off a comparison
-        search
-
-        Make sure multiple whitespace occurrences are replaced with a
-        single space
-        """
-        self.string = " ".join(self.string.split())
-
-    def normalize(self):
-        """Run all the regexes and string manipulations to normalize a
-        string
-        """
-        self.set_lowercase()
-        self.normalize_whitespace()
-        self.normalize_non_alpha_numeric()
-        self.deduplicate_whitespace()
+LOGGER = logging.getLogger("categorpy")
 
 
 class Ratio:
@@ -141,8 +98,8 @@ class Ratio:
         :param test:    The blacklisted or owned file
         :return:        An integer (or float?) value for the ratio
         """
-        normalize_listed = Normalize(listed)
-        normalize_test = Normalize(test)
+        normalize_listed = normalize.File(listed)
+        normalize_test = normalize.File(test)
 
         normalize_listed.normalize()
 
@@ -158,31 +115,17 @@ class Ratio:
 class Find(Ratio):
     """Find files by words not fuzziness
 
-    :param blacklisted: List of blacklisted files
-    :param owned:       List of owned files
     :param cutoff:      Percentage threshold for equality
     """
 
-    def __init__(self, blacklisted, owned, cutoff=70):
+    def __init__(self, cutoff=70, **kwargs):
         super().__init__()
-        self.types = {
-            "blacklisted": {"files": blacklisted, "matches": []},
-            "owned": {"files": owned, "matches": []},
-            "unowned": {"files": [], "matches": []},
-            "rejected": {"files": [], "matches": []},
-        }
+        self.types = kwargs
+        self.found = []
+        self.rejected = 0
         self.cutoff = cutoff
-        self.info_logger = logging.getLogger("info")
 
-    def get_matches(self, type_):
-        """Get the dictionary matches from the instantiated object
-
-        :param type_:   The key for the value to retrieve
-        :return:        The list of matches for the type
-        """
-        return self.types[type_]["matches"]
-
-    def match(self, listed, test):
+    def ratio(self, listed, test):
         """Boolean for match or no match
 
         :param listed:  The string were filtering against
@@ -201,10 +144,10 @@ class Find(Ratio):
 
         :param decoded: The decoded magnet data
         """
-        self.types["unowned"]["matches"].append(decoded)
-        self.info_logger.info("[FOUND] %s", decoded)
+        self.found.append(decoded)
+        LOGGER.info("[FOUND] %s", decoded)
 
-    def log_rejected(self, key, decoded, file):
+    def log_rejected(self, key, decoded):
         """Log that an owned or blacklisted file has been found
 
         Add this to it's corresponding type in the ``self.types``
@@ -215,31 +158,45 @@ class Find(Ratio):
         :param key:     The key that the rejected magnet belongs to i.e
                         was it blacklisted or is it already owned?
         :param decoded: The decoded magnet link data
-        :param file:    The file we are testing the decoded magnet link
-                        against
         """
-        self.types[key]["matches"].append(file)
-        self.types["rejected"]["matches"].append(file)
-        self.info_logger.info("[%s] %s", key.upper(), decoded)
+        LOGGER.info("[%s] %s", key.upper(), decoded)
+        self.rejected += 1
 
-    def iterate_owned(self, decoded):
+    @staticmethod
+    def globs(magnet, file):
+        """Append files matching globs which are supported in certain
+        data-files
+
+        :param magnet:  Match the globs against the magnet-files to
+                        filter out the unwanted magnets
+        :param file:
+        """
+        try:
+            file = file.replace(" ", "_")
+            return fnmatch.fnmatch(magnet.casefold(), file.casefold())
+        except re.error as err:
+            LOGGER.warning("re.error - %s\n%s\n", err, file)
+            return False
+
+    def iterate_owned(self, magnet):
         """Loop through the owned files against the magnet link files
 
-        :param decoded: The decoded magnet data
-        :return:
+        :param magnet: The decoded magnet data
         """
-        for key, val in self.types.items():
-            for file in val["files"]:
-                if self.match(decoded, file):
-                    self.log_rejected(key, decoded, file)
-                    return
-        self.log_found(decoded)
+        for key in self.types:
+            for file in self.types[key]:
+                if self.globs(magnet, file) or self.ratio(magnet, file):
+                    self.log_rejected(key, magnet)
+                    break
+        self.log_found(magnet)
 
     def display_tally(self):
         """Display a live tally of where the process is for the user"""
-        found = len(self.types["unowned"]["matches"])
-        rejected = len(self.types["rejected"]["matches"])
-        print(f"found: {found}    rejected: {rejected}", end="\r", flush=True)
+        print(
+            f"found: {len(self.found)}    rejected: {self.rejected}",
+            end="\r",
+            flush=True,
+        )
 
     def iterate(self, magnets):
         """Iterate through the owned, blacklisted and magnet files and
@@ -252,7 +209,7 @@ class Find(Ratio):
 
         :param magnets: The scraped torrent data
         """
-        self.info_logger.info("Finding wanted torrents")
+        LOGGER.info("Finding torrents")
         try:
             for magnet in magnets:
                 self.iterate_owned(magnet)

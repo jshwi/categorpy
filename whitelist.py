@@ -1,5 +1,5 @@
 # noinspection PyUnresolvedReferences,PyStatementEffect
-_.flush  # unused method (categorpy/src/textio.py:207)
+_.flush  # unused method (categorpy/src/textio.py:187)
 # noinspection PyUnresolvedReferences,PyStatementEffect
 project  # unused variable (docs/conf.py:22)
 # noinspection PyUnresolvedReferences,PyStatementEffect
