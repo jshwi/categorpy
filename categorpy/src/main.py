@@ -2,7 +2,6 @@
 categorpy.src.main
 ==================
 """
-import datetime
 import getpass
 import logging
 import os
@@ -219,9 +218,9 @@ def initialize_paths_file():
 
     :return: List of paths to scan for files
     """
-    _paths = os.path.join(CONFIGDIR, "paths")
-    pathio = textio.TextIO(_paths)
-    filestatus = os.stat(_paths)
+    paths = os.path.join(CONFIGDIR, "paths")
+    pathio = textio.TextIO(paths)
+    filestatus = os.stat(paths)
     if not filestatus.st_size:
         pathio.write(str(pathlib.Path.home()))
     return pathio.read_to_list()
@@ -246,31 +245,6 @@ def intervals(pages):
     return int(numbers[0]), int(numbers[stopint]) + 1
 
 
-def record_hist(history, url):
-    """Add url search history to history cache file
-
-    Increment id from the last search
-
-    Add timestamp
-
-    :param history: History object instantiated from
-                    ``categorpy.TextIO``
-    :param url:     Url search or retrieved from prior history
-                    - depending on whether an argument was passed to the
-                    commandline
-    """
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-
-    try:
-        _id = history.object["history"][-1]["id"] + 1
-    except KeyError:
-        _id = 0
-
-    history.append_json_array(
-        ("history", {"id": _id, "timestamp": timestamp, "url": url})
-    )
-
-
 def start_transmission(pages, url):
     """Loop over page numbers entered for url and load up
      ``transmission-rpc``
@@ -279,7 +253,6 @@ def start_transmission(pages, url):
     :param url:     Url to scrape for magnets and load
                     ``transmission-daemon`` with
     """
-    print("Enumerating objects...")
     parse_pages = files.PageNumbers(url)
     kwargs = rpc_kwargs()
     pages = pages if pages else parse_pages.get_page_number()
@@ -291,8 +264,14 @@ def start_transmission(pages, url):
     blacklistio = textio.TextIO(blacklist_file)
     blacklist = blacklistio.read_to_list()
     download_dir = obj["download-dir"]
+
+    print("Scanning downloads directory...")
+
     torrents = files.Torrents(download_dir)
     paths = initialize_paths_file()
+
+    print("Indexing...")
+
     idx = files.Index(paths)
 
     torrents.parse_torrents()
@@ -347,7 +326,7 @@ def main():
 
     initialize_loggers(debug)
 
-    record_hist(history, url)
+    textio.record_hist(history, url)
 
     try:
         start_transmission(args.pages, url)
