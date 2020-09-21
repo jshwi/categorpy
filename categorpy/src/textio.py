@@ -5,6 +5,7 @@ categorpy.src.textio
 Write and read app data.
 """
 import contextlib
+import datetime
 import json
 import logging
 import logging.handlers
@@ -209,4 +210,29 @@ def pygment_print(string):
     """
     print(
         highlight(string, YamlLexer(), Terminal256Formatter(style="monokai"))
+    )
+
+
+def record_hist(history, url):
+    """Add url search history to history cache file
+
+    Increment id from the last search
+
+    Add timestamp
+
+    :param history: History object instantiated from
+                    ``categorpy.TextIO``
+    :param url:     Url search or retrieved from prior history
+                    - depending on whether an argument was passed to the
+                    commandline
+    """
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+    try:
+        _id = history.object["history"][-1]["id"] + 1
+    except KeyError:
+        _id = 0
+
+    history.append_json_array(
+        ("history", {"id": _id, "timestamp": timestamp, "url": url})
     )

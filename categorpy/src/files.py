@@ -11,8 +11,6 @@ import pathlib
 # noinspection PyPackageRequirements
 import bencodepy
 
-from . import textio
-
 LOGGER = logging.getLogger("categorpy")
 
 
@@ -41,9 +39,9 @@ class Torrents:
     @staticmethod
     def _read_bencode_file(fullpath):
         # read bytes to buffer from file's full path
-        fullpathio = textio.TextIO(fullpath)
-        fullpathio.read_bytes()
-        return fullpathio.output
+        textio = TextIO(fullpath)
+        textio.read_bytes()
+        return textio.output
 
     @staticmethod
     def _parse_bencode_object(bencode):

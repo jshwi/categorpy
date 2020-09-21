@@ -118,12 +118,13 @@ class Find(Ratio):
     :param cutoff:      Percentage threshold for equality
     """
 
-    def __init__(self, cutoff=70, **kwargs):
+    def __init__(self, cutoff=70, globs=None, **kwargs):
         super().__init__()
         self.types = kwargs
         self.found = []
         self.rejected = 0
         self.cutoff = cutoff
+        self.glob = globs if globs else []
 
     def ratio(self, listed, test):
         """Boolean for match or no match
@@ -185,8 +186,12 @@ class Find(Ratio):
         """
         for key in self.types:
             for file in self.types[key]:
-                if self.globs(magnet, file) or self.ratio(magnet, file):
-                    self.log_rejected(key, magnet)
+                if key in self.glob:
+                    if self.globs(magnet, file):
+                        self.log_rejected(key, magnet)
+                else:
+                    if self.ratio(magnet, file):
+                        self.log_rejected(key, magnet)
                     break
         self.log_found(magnet)
 
