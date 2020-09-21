@@ -18,26 +18,23 @@ class Ratio:
 
     exclude = ["and"]
 
-    def __init__(self):
-        self.debug_logger = logging.getLogger("debug")
+    def __init__(self, string1, string2):
+        self.string1 = normalize.File(string1)
+        self.string2 = normalize.File(string2)
+        self.int = 0
 
-    @staticmethod
-    def count_obj(string1, string2):
+    def count_obj(self):
         """Get ca key-value pair for a word and for the word itself and
         the number of occurrences of it within a string
 
         If there are too many reoccurrences of a word it can inflate the
         ratio for a similar word
 
-        :param string1: The listed string - the download we are working
-                        with
-        :param string2: The string belonging to the hard drive that we
-                        are testing for equality
-        :return:        The dictionary object
+        :return: The dictionary object
         """
         return {
-            w: string2.split().count(w)
-            for w in string1.split()
+            w: self.string2.string.split().count(w)
+            for w in self.string1.string.split()
             if w not in Ratio.exclude
         }
 
@@ -54,8 +51,7 @@ class Ratio:
         """
         return [len(k * v) for k, v in word_count.items()]
 
-    @staticmethod
-    def work_percentage(string, match_len):
+    def work_percentage(self, match_len):
         """Get the final number of the length of the length of the
         string
 
@@ -64,65 +60,54 @@ class Ratio:
         Work out the percentage that this one word occupies within the
         string
 
-        :param string:      The string containing the words
         :param match_len:   The one word analyzed within the string
         :return:            An integer value for the percentage of the
                             string the word takes up
         """
         try:
             sum_ = sum(match_len)
-            len_ = len("".join(string.split()))
+            len_ = len("".join(self.string1.string.split()))
             percent = sum_ / len_
             return percent
         except ZeroDivisionError:
             return 0
 
-    def word_ratio(self, string1, string2):
+    def word_ratio(self):
         """Get the ratio of substrings within the two strings
 
-        :param string1: String we are testing against (magnet)
-        :param string2: The tester string (blacklist, owned)
-        :return:        An integer for the percentage (or float - can't
-                        remember right now)
+        :return:    An integer for the percentage (or float - can't
+                    remember right now)
         """
-        word_count = self.count_obj(string1, string2)
+        word_count = self.count_obj()
         match_len = self.length_of_match(word_count)
-        percent_match = self.work_percentage(string1, match_len)
-        return 100 * percent_match
+        percent_match = self.work_percentage(match_len)
+        self.int = 100 * percent_match
 
-    def get_ratio(self, listed, test):
+    def get_ratio(self):
         """Get the final number of the ratio of matches between the
         two strings
 
-        :param listed:  The magnet data
-        :param test:    The blacklisted or owned file
-        :return:        An integer (or float?) value for the ratio
+        :return: An integer (or float?) value for the ratio
         """
-        normalize_listed = normalize.File(listed)
-        normalize_test = normalize.File(test)
+        self.string1.normalize()
 
-        normalize_listed.normalize()
+        self.string2.normalize()
 
-        normalize_test.normalize()
+        self.word_ratio()
 
-        ratio = self.word_ratio(normalize_listed.string, normalize_test.string)
-
-        self.debug_logger.debug("%s: %s", listed, ratio)
-
-        return ratio
+        LOGGER.debug("%s: %s", self.string1.string, self.int)
 
 
-class Find(Ratio):
+class Find:
     """Find files by words not fuzziness
 
     :param cutoff:      Percentage threshold for equality
     """
 
     def __init__(self, cutoff=70, globs=None, **kwargs):
-        super().__init__()
         self.types = kwargs
         self.found = []
-        self.rejected = 0
+        self.rejected = []
         self.cutoff = cutoff
         self.glob = globs if globs else []
 
@@ -134,34 +119,9 @@ class Find(Ratio):
                         against
         :return:        True or False
         """
-        ratio = self.get_ratio(listed, test)
-        return ratio > self.cutoff
-
-    def log_found(self, decoded):
-        """Log to logfile that a torrent valid for download has been
-        found
-
-        Ad the item to the matches value in the dictionary object
-
-        :param decoded: The decoded magnet data
-        """
-        self.found.append(decoded)
-        LOGGER.info("[FOUND] %s", decoded)
-
-    def log_rejected(self, key, decoded):
-        """Log that an owned or blacklisted file has been found
-
-        Add this to it's corresponding type in the ``self.types``
-        dictionary
-
-        Add this to the sub-total ``rejected`` key for analysis
-
-        :param key:     The key that the rejected magnet belongs to i.e
-                        was it blacklisted or is it already owned?
-        :param decoded: The decoded magnet link data
-        """
-        LOGGER.info("[%s] %s", key.upper(), decoded)
-        self.rejected += 1
+        ratio = Ratio(listed, test)
+        ratio.get_ratio()
+        return ratio.int > self.cutoff
 
     @staticmethod
     def globs(magnet, file):
@@ -186,19 +146,17 @@ class Find(Ratio):
         """
         for key in self.types:
             for file in self.types[key]:
-                if key in self.glob:
-                    if self.globs(magnet, file):
-                        self.log_rejected(key, magnet)
-                else:
-                    if self.ratio(magnet, file):
-                        self.log_rejected(key, magnet)
-                    break
-        self.log_found(magnet)
+                match = self.globs if key in self.glob else self.ratio
+                if match(magnet, file):
+                    self.rejected.append(magnet)
+                    return key
+        self.found.append(magnet)
+        return "found"
 
     def display_tally(self):
         """Display a live tally of where the process is for the user"""
         print(
-            f"found: {len(self.found)}    rejected: {self.rejected}",
+            f"found: {len(self.found)}    rejected: {len(self.rejected)}",
             end="\r",
             flush=True,
         )
@@ -217,7 +175,9 @@ class Find(Ratio):
         LOGGER.info("Finding torrents")
         try:
             for magnet in magnets:
-                self.iterate_owned(magnet)
+                status = self.iterate_owned(magnet)
+                status = status.upper()
+                LOGGER.info("[%s] %s", status, magnet)
                 self.display_tally()
         except ValueError:
             print("Search returned no results...")

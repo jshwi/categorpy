@@ -200,15 +200,6 @@ def attempt_read(_config):
         )
 
 
-def settings_obj():
-    """Module entry point for ``settings.json``"""
-    _config = config.Config(CONFIGDIR)
-
-    _config.initialize_config()
-
-    return attempt_read(_config)
-
-
 def initialize_paths_file():
     """Make default file if it doesn't exist and read the file for paths
     that the user wants to scan for existing files to filter out of
@@ -224,13 +215,6 @@ def initialize_paths_file():
     if not filestatus.st_size:
         pathio.write(str(pathlib.Path.home()))
     return pathio.read_to_list()
-
-
-def rpc_kwargs():
-    """Get rpc kwargs"""
-    want = ["password", "username"]
-    obj = settings_obj()
-    return {k: obj[f"rpc-{k}"] for k in want}
 
 
 def intervals(pages):
@@ -254,20 +238,26 @@ def start_transmission(pages, url):
                     ``transmission-daemon`` with
     """
     parse_pages = files.PageNumbers(url)
-    kwargs = rpc_kwargs()
     pages = pages if pages else parse_pages.get_page_number()
 
     scraper = web.ScrapeWeb()
 
-    obj = settings_obj()
     blacklist_file = os.path.join(CONFIGDIR, "blacklist")
     blacklistio = textio.TextIO(blacklist_file)
     blacklist = blacklistio.read_to_list()
-    download_dir = obj["download-dir"]
+    _config = config.Config(CONFIGDIR)
 
-    print("Scanning downloads directory...")
+    _config.initialize_config()
 
-    torrents = files.Torrents(download_dir)
+    obj = attempt_read(_config)
+    want = ["password", "username"]
+    kwargs = {k: obj[f"rpc-{k}"] for k in want}
+
+    print("Scanning local torrents...")
+
+    torrent_dir = os.path.join(_config.client_dir, "torrents")
+
+    torrents = files.Torrents(torrent_dir)
     paths = initialize_paths_file()
 
     print("Indexing...")
@@ -282,7 +272,10 @@ def start_transmission(pages, url):
     # print report and cache report files
     # get list of unmatched files that can be downloaded
     findobj = find.Find(
-        owned=idx.files, blacklisted=blacklist, downloading=torrents.files,
+        owned=idx.files,
+        blacklisted=blacklist,
+        downloading=torrents.files,
+        globs=["blacklisted"],
     )
 
     start, stop = intervals(pages)

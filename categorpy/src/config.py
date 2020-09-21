@@ -20,6 +20,7 @@ class Config:
         self.configpath = os.path.join(configdir, "config.ini")
         self.path = pathlib.Path(configdir)
         self.user_config = os.path.dirname(configdir)
+        self.client_dir = os.path.join(self.user_config, "transmission-daemon")
         self.ini = configparser.ConfigParser()
         self.make_config_dir()
 
@@ -35,8 +36,7 @@ class Config:
 
     def write_new(self):
         """Write a new ``config.ini`` file with default settings"""
-        default_path = os.path.join(self.user_config, "transmission-daemon")
-        default_settings = {"DEFAULT": {"transmission-dir": default_path}}
+        default_settings = {"DEFAULT": {"transmission": self.client_dir}}
         self.ini.read_dict(default_settings)
         with open(self.configpath, "w") as file:
             self.ini.write(file)
@@ -56,7 +56,7 @@ class Config:
         :return:            Dictionary object containing all the
                             ``transmission-daemon`` settings
         """
-        client_dir = self.ini["DEFAULT"]["transmission-dir"]
+        client_dir = self.ini["DEFAULT"]["transmission"]
         settings = os.path.join(client_dir, "settings.json")
         with open(settings) as file:
             return json.load(file)

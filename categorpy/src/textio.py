@@ -32,11 +32,11 @@ class TextIO:
                     should not be sorted
     """
 
-    def __init__(self, path, **kwargs):
+    def __init__(self, path, _object=None, **kwargs):
         self.path = path
         self.ispath = os.path.isfile(path)
         self.output = ""
-        self.object = {}
+        self.object = _object if _object else {}
         self.method = kwargs.get("method", None)
         self.args = kwargs.get("args", ())
 
@@ -48,9 +48,12 @@ class TextIO:
 
         :return: The file's content split into a list
         """
-        with open(self.path) as file:
-            content = file.read().splitlines()
-        return content
+        try:
+            with open(self.path) as file:
+                content = file.read().splitlines()
+            return content
+        except FileNotFoundError:
+            return []
 
     def _execute(self, obj):
         if self.method:
