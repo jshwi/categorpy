@@ -61,7 +61,7 @@ class TextIO:
                 return getattr(obj, self.method)(*self.args)
             except TypeError:
                 try:
-                    function = self.method.rsplit(". ", 1)
+                    function = self.method.rsplit(". ", 1)[1]
                     return getattr(self.method, function)(obj)
                 except AttributeError:
                     pass

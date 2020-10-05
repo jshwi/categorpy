@@ -5,7 +5,6 @@ parse
 Parse data files and magnet-links
 """
 import os
-import pathlib
 
 # noinspection PyPackageRequirements
 import bencodepy
@@ -21,19 +20,19 @@ class Torrents:
     def __init__(self):
         self.client_dir = locate.APPDIRS.client_dir
         self.path = os.path.join(self.client_dir, "torrents")
-        self.files = []
-        self.obj = {}
+        self.paths = []
+        self.object = {}
+        self._get_torrent_paths()
 
-    def get_torrents(self):
+    def _get_torrent_paths(self):
         """Get the torrent magnet-link files
 
         :return: List of torrent magnet-links
         """
         if os.path.isdir(self.path):
-            self.files.extend(
+            self.paths.extend(
                 [os.path.join(self.path, t) for t in os.listdir(self.path)]
             )
-        return self.files
 
     @staticmethod
     def _read_bencode_file(fullpath):
@@ -66,8 +65,7 @@ class Torrents:
         """Call to get the readable content from the bencode and create
         a dictionary object of names and their corresponding magnets
         """
-        self.get_torrents()
-        for path in self.files:
+        for path in self.paths:
             try:
                 # get the bencode bytes from their .torrent file
                 bencode = self._read_bencode_file(path)
@@ -81,19 +79,11 @@ class Torrents:
 
                 # update the torrent file object with the torrent file's
                 # name as the key and it's path as the value
-                self.obj.update({decoded: os.path.basename(path)})
+                self.object.update({decoded: os.path.basename(path)})
 
+    def get_decoded_names(self):
+        """Return a list of decoded names
 
-def index_path(paths_list):
-    """get list of system files"""
-    files = []
-    for path in paths_list:
-        pathobj = pathlib.Path(path)
-        files.extend(
-            [
-                os.path.basename(str(f))
-                for f in pathobj.rglob("*")
-                if os.path.isfile(str(f))
-            ]
-        )
-    return files
+        :return: List of decoded magnet names
+        """
+        return list(self.object.keys())

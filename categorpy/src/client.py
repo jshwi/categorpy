@@ -30,16 +30,18 @@ def prior_auth(entered):
     print("\nincorrect password: please try again")
 
 
-def instantiate_client():
+def instantiate_client(keyring, settings):
     """Attempt to instantiate the ``transmission_rpc.Client`` class or
     log an error and explain the nature of the fault to the user before
     exiting with a non-zero exit code
 
-    :return:        Instantiated ``transmission_rpc.Client`` class
+    :param keyring:     Instantiated ``Keyring`` object to store and
+                        retrieve passwords
+    :param settings:    Dictionary object containing
+                        ``transmission-daemon`` settings from
+                        settings.json
+    :return:            Instantiated ``transmission_rpc.Client`` class
     """
-    kwargs = config.client_settings()
-    keyring = auth.Keyring(locate.APPNAME, kwargs.get("username", ""))
-    kwargs["password"] = keyring.password
     password_protect = False
     logger = log.get_logger()
     while True:
@@ -61,7 +63,7 @@ def instantiate_client():
             # transmission_rpc.Client will be returned from this
             # function
             with log.StreamLogger(name="transmission", level="DEBUG"):
-                client = transmission_rpc.Client(**kwargs)
+                client = transmission_rpc.Client(**settings)
 
             # if the process has made it this far then if
             # password_protected is False break and return client
@@ -95,7 +97,7 @@ def instantiate_client():
             except (KeyboardInterrupt, EOFError):
                 exception.terminate_proc()
 
-            kwargs["password"] = keyring.password
+            settings["password"] = keyring.password
 
             # continue on to attempt to instantiate the client again
             continue
@@ -107,15 +109,20 @@ def instantiate_client():
             exception.exit_fatal(err)
 
 
-def run_client(unowned_magnets, unmatched):
+def run_client(unowned_magnets, unmatched, keyring, settings):
     """Load the magnet links into the rpc client
 
     :param unowned_magnets: Magnets not owned by user so good to load
     :param unmatched:       Unmatched human readable names of magnets
+    :param keyring:         Instantiated ``Keyring`` object to store and
+                            retrieve passwords
+    :param settings:        Dictionary object containing
+                            ``transmission-daemon`` settings from
+                            settings.json
     :return:                Info regarding what torrent were loaded into
                             client
     """
-    client = instantiate_client()
+    client = instantiate_client(keyring, settings)
     for magnet in unowned_magnets:
         client.add_torrent(magnet)
     newfiles = "- " + "\n- ".join(unmatched)
@@ -125,7 +132,7 @@ def run_client(unowned_magnets, unmatched):
     )
 
 
-def start_transmission(magnets, unmatched):
+def start_transmission(magnets, unmatched, keyring, settings):
     """Compare magnet files parsed from bencode text into plaintext
     against existing files on the user's system
 
@@ -137,12 +144,18 @@ def start_transmission(magnets, unmatched):
     :param magnets:         List of magnet contents (not paths)
     :param unmatched:       List of torrents that have been scraped and
                             are not owned (in plaintext)
+
+    :param keyring:         Instantiated ``Keyring`` object to store and
+                            retrieve passwords
+    :param settings:        Dictionary object containing
+                            ``transmission-daemon`` settings from
+                            settings.json
     :return:                Info summary for what has happened whilst
                             running ``transmission-daemon``
     """
     unowned_magnets = [v for k, v in magnets.items() if k in unmatched]
     if unowned_magnets:
-        return run_client(unowned_magnets, unmatched)
+        return run_client(unowned_magnets, unmatched, keyring, settings)
     return "*** There's Nothing to Add ***\n"
 
 
@@ -159,12 +172,15 @@ def transmission(args, find):
     logger = log.get_logger()
     parse_pages = pages.Pages(args.url, args.pages)
     scraper = web.ScrapeWeb()
+    settings = config.client_settings()
+    keyring = auth.Keyring(locate.APPNAME, settings.get("username", ""))
+    settings["password"] = keyring.password
 
     for i in range(parse_pages.start, parse_pages.stop):
         if parse_pages.ispage:
             args.url = parse_pages.select_page_number(i)
 
-        print(f"page: {i}")
+        print(f"Pg. {i}")
 
         scraper.process_request(args.url)
 
@@ -176,7 +192,9 @@ def transmission(args, find):
 
         find.iterate(scraper_keys)
 
-        info = start_transmission(scraper.object, find.found)
+        info = start_transmission(
+            scraper.object, find.found, keyring, settings
+        )
 
         logger.info("\n%s", info)
 

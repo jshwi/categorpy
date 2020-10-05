@@ -5,9 +5,11 @@ categorpy.src.find
 Find, match and reject.
 """
 import fnmatch
+import os
+import pathlib
 import re
 
-from . import files, locate, log, normalize, textio
+from . import normalize, locate, log, torrents, textio
 
 
 class Ratio:
@@ -179,20 +181,36 @@ class Find:
 
         :param magnets: The scraped torrent data
         """
+        logger = log.get_logger()
         try:
             self.found.clear()
             self.rejected.clear()
             for magnet in magnets:
-                logger = log.get_logger()
                 status = self.iterate_owned(magnet)
                 status = status.upper()
                 logger.info("[%s] %s", status, magnet)
                 self.display_tally()
-        except ValueError:
+        except ValueError as err:
+            logger.exception(err)
             print("Search returned no results...")
 
 
-def analyze_files():
+def index_path(paths_list):
+    """get list of system files"""
+    files = []
+    for path in paths_list:
+        pathobj = pathlib.Path(path)
+        files.extend(
+            [
+                os.path.basename(str(f))
+                for f in pathobj.rglob("*")
+                if os.path.isfile(str(f))
+            ]
+        )
+    return files
+
+
+def instantiate_find():
     """Loop over page numbers entered for url
 
     Instantiate fuzzy find class with all the lists to match against
@@ -205,17 +223,15 @@ def analyze_files():
     """
     blacklistio = textio.TextIO(locate.APPFILES.blacklist)
     blacklist = blacklistio.read_to_list()
-
-    torrents = files.Torrents()
+    _torrents = torrents.Torrents()
 
     print("Scanning local torrents")
-    torrents.parse_torrents()
+
+    _torrents.parse_torrents()
 
     paths_list = textio.initialize_paths_file(locate.APPFILES.paths)
-
-    idx = log.log_time("Indexing", files.index_path, args=(paths_list,))
-
-    keys = list(torrents.obj.keys())
+    idx = log.log_time("Indexing", index_path, args=(paths_list,))
+    keys = _torrents.get_decoded_names()
 
     return Find(
         downloading=keys,

@@ -26,11 +26,6 @@ categorpy
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: categorpy.src.files
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 .. automodule:: categorpy.src.find
     :members:
     :undoc-members:
@@ -67,6 +62,11 @@ categorpy
     :show-inheritance:
 
 .. automodule:: categorpy.src.textio
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: categorpy.src.torrents
     :members:
     :undoc-members:
     :show-inheritance:
