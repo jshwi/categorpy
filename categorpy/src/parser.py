@@ -8,7 +8,7 @@ import argparse
 import sys
 from contextlib import redirect_stdout
 
-from . import textio, locate, log
+from . import locate, log, textio
 
 
 class Parser(argparse.ArgumentParser):
