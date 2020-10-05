@@ -5,12 +5,9 @@ categorpy.src.find
 Find, match and reject.
 """
 import fnmatch
-import logging
 import re
 
-from . import normalize
-
-LOGGER = logging.getLogger("categorpy")
+from . import files, locate, log, normalize, textio
 
 
 class Ratio:
@@ -81,27 +78,61 @@ class Ratio:
         word_count = self.count_obj()
         match_len = self.length_of_match(word_count)
         percent_match = self.work_percentage(match_len)
-        self.int = 100 * percent_match
+        self.int = round(100 * percent_match)
 
     def get_ratio(self):
         """Get the final number of the ratio of matches between the
         two strings
 
-        :return: An integer (or float?) value for the ratio
+        :return: An integer value for the ratio
         """
         self.string1.normalize()
-
         self.string2.normalize()
-
         self.word_ratio()
 
-        LOGGER.debug("%s: %s", self.string1.string, self.int)
+
+def match_ratio(magnet, exclude, cutoff):
+    """Boolean for match or no match
+
+    :param magnet:      The string were filtering against
+    :param exclude:    The owned or blacklisted object we are testing
+                        against
+    :param cutoff:
+    :return:            True or False
+    """
+    logger = log.get_logger()
+    ratio = Ratio(magnet, exclude)
+    ratio.get_ratio()
+    match = ratio.int > cutoff
+    if match:
+        logger.debug("[RATIO] {%s: %s}", magnet, ratio.int)
+    return match
+
+
+def match_globs(magnet, exclude):
+    """Append files matching globs which are supported in certain
+    data-files
+
+    :param magnet:  Match the globs against the magnet-files to
+                    filter out the unwanted magnets
+    :param exclude:
+    """
+    logger = log.get_logger()
+    try:
+        exclude = exclude.replace(" ", "_")
+        match = fnmatch.fnmatch(magnet.casefold(), exclude.casefold())
+        if match:
+            logger.debug("[PATTERN] {%s: %s}", magnet, exclude)
+        return match
+    except re.error as err:
+        logger.warning(msg=str(err), exc_info=True)
+        return False
 
 
 class Find:
     """Find files by words not fuzziness
 
-    :param cutoff:      Percentage threshold for equality
+    :param cutoff: Percentage threshold for equality
     """
 
     def __init__(self, cutoff=70, globs=None, **kwargs):
@@ -111,33 +142,10 @@ class Find:
         self.cutoff = cutoff
         self.glob = globs if globs else []
 
-    def ratio(self, listed, test):
-        """Boolean for match or no match
-
-        :param listed:  The string were filtering against
-        :param test:    The owned or blacklisted object we are testing
-                        against
-        :return:        True or False
-        """
-        ratio = Ratio(listed, test)
-        ratio.get_ratio()
-        return ratio.int > self.cutoff
-
-    @staticmethod
-    def globs(magnet, file):
-        """Append files matching globs which are supported in certain
-        data-files
-
-        :param magnet:  Match the globs against the magnet-files to
-                        filter out the unwanted magnets
-        :param file:
-        """
-        try:
-            file = file.replace(" ", "_")
-            return fnmatch.fnmatch(magnet.casefold(), file.casefold())
-        except re.error as err:
-            LOGGER.warning("re.error - %s\n%s\n", err, file)
-            return False
+    def _get_match(self, key, magnet, exclude):
+        if key in self.glob:
+            return match_globs(magnet, exclude)
+        return match_ratio(magnet, exclude, self.cutoff)
 
     def iterate_owned(self, magnet):
         """Loop through the owned files against the magnet link files
@@ -145,9 +153,8 @@ class Find:
         :param magnet: The decoded magnet data
         """
         for key in self.types:
-            for file in self.types[key]:
-                match = self.globs if key in self.glob else self.ratio
-                if match(magnet, file):
+            for exclude in self.types[key]:
+                if self._get_match(key, magnet, exclude):
                     self.rejected.append(magnet)
                     return key
         self.found.append(magnet)
@@ -172,12 +179,47 @@ class Find:
 
         :param magnets: The scraped torrent data
         """
-        LOGGER.info("Finding torrents")
         try:
+            self.found.clear()
+            self.rejected.clear()
             for magnet in magnets:
+                logger = log.get_logger()
                 status = self.iterate_owned(magnet)
                 status = status.upper()
-                LOGGER.info("[%s] %s", status, magnet)
+                logger.info("[%s] %s", status, magnet)
                 self.display_tally()
         except ValueError:
             print("Search returned no results...")
+
+
+def analyze_files():
+    """Loop over page numbers entered for url
+
+    Instantiate fuzzy find class with all the lists to match against
+    print report and cache report files and get list of unmatched files
+    that can be downloaded
+
+    load up ``transmission``
+
+    :return: Instantiated ``find.Find`` object
+    """
+    blacklistio = textio.TextIO(locate.APPFILES.blacklist)
+    blacklist = blacklistio.read_to_list()
+
+    torrents = files.Torrents()
+
+    print("Scanning local torrents")
+    torrents.parse_torrents()
+
+    paths_list = textio.initialize_paths_file(locate.APPFILES.paths)
+
+    idx = log.log_time("Indexing", files.index_path, args=(paths_list,))
+
+    keys = list(torrents.obj.keys())
+
+    return Find(
+        downloading=keys,
+        blacklisted=blacklist,
+        owned=idx,
+        globs=["blacklisted"],
+    )

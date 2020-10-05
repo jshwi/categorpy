@@ -4,26 +4,23 @@ parse
 
 Parse data files and magnet-links
 """
-import logging
 import os
 import pathlib
 
 # noinspection PyPackageRequirements
 import bencodepy
 
-from . import textio
-
-LOGGER = logging.getLogger("categorpy")
+from . import locate, log, textio
 
 
 class Torrents:
-    """Parse downloaded data for human readable categorisation
+    """Parse downloaded data for human readable categorisation"""
 
-    :param path: Dirs that contain downloaded torrent magnet-links
-    """
+    logger = log.get_logger()
 
-    def __init__(self, path):
-        self.path = path
+    def __init__(self):
+        self.client_dir = locate.APPDIRS.client_dir
+        self.path = os.path.join(self.client_dir, "torrents")
         self.files = []
         self.obj = {}
 
@@ -45,19 +42,24 @@ class Torrents:
         fullpathio.read_bytes()
         return fullpathio.output
 
-    @staticmethod
-    def _parse_bencode_object(bencode):
-        # take bencode content (not path) and convert it to human
-        # readable text
+    @classmethod
+    def parse_bencode_object(cls, bencode):
+        """take bencode content (not path) and convert it to human
+        readable text
+
+        :param bencode: Bytes read from torrent file
+        """
         try:
             obj = bencodepy.decode(bencode)
             try:
                 # noinspection PyTypeChecker
                 result = obj[b"magnet-info"][b"display-name"]
                 return result.decode("utf-8").replace("+", " ")
-            except KeyError:
+            except KeyError as err:
+                cls.logger.exception(str(err))
                 return None
-        except bencodepy.exceptions.BencodeDecodeError:
+        except bencodepy.exceptions.BencodeDecodeError as err:
+            cls.logger.exception(str(err))
             return None
 
     def parse_torrents(self):
@@ -69,11 +71,12 @@ class Torrents:
             try:
                 # get the bencode bytes from their .torrent file
                 bencode = self._read_bencode_file(path)
-            except IsADirectoryError:
+            except IsADirectoryError as err:
+                self.logger.exception(str(err))
                 continue
 
             # parse these bytes into human readable plaintext
-            decoded = self._parse_bencode_object(bencode)
+            decoded = self.parse_bencode_object(bencode)
             if decoded:
 
                 # update the torrent file object with the torrent file's
@@ -81,61 +84,16 @@ class Torrents:
                 self.obj.update({decoded: os.path.basename(path)})
 
 
-class PageNumbers:
-    """Parse the torrent page-numbers from their URLs
-
-    :param url: The URL the page numbers belong to
-    """
-
-    def __init__(self, url):
-        self.url = url
-        self.ulist = self.url.split("/")
-        self.ispage = False
-        self.page_index = 0
-        self.check_for_pages()
-
-    def check_for_pages(self):
-        """Check for the page schema of the URL"""
-        try:
-            self.page_index = self.ulist.index("page") + 1
-            self.ispage = True
-        except ValueError:
-            pass
-
-    def _replace_page(self, page_number):
-        self.ulist[self.page_index] = str(page_number)
-
-    def select_page_number(self, page_number):
-        """Alter the URL to replace the current page number with the
-        desired page-number
-        """
-        self._replace_page(page_number)
-        return "/".join(self.ulist)
-
-    def get_page_number(self):
-        """Extract the page-number from the url
-
-        :return: Page-number
-        """
-        return self.ulist[self.page_index] if self.ispage else "0"
-
-
-class Index:
-    """Index the files on the user's system and do not stop for
-    permission errors
-    """
-
-    def __init__(self, paths):
-        self.paths = paths
-        self.files = []
-
-    def _iterate_each(self, path):
+def index_path(paths_list):
+    """get list of system files"""
+    files = []
+    for path in paths_list:
         pathobj = pathlib.Path(path)
-        self.files.extend(
-            [str(f) for f in pathobj.rglob("*") if os.path.isfile(str(f))]
+        files.extend(
+            [
+                os.path.basename(str(f))
+                for f in pathobj.rglob("*")
+                if os.path.isfile(str(f))
+            ]
         )
-
-    def iterate(self):
-        """get list of system files"""
-        for path in self.paths:
-            self._iterate_each(path)
+    return files
