@@ -45,7 +45,7 @@ def main():
     args = parser.get_namespace(argparser)
 
     try:
-        findobj = find.analyze_files()
+        findobj = find.instantiate_find()
         log.log_time(
             "Finding torrents", client.transmission, args=(args, findobj)
         )

@@ -24,7 +24,7 @@ class Parser(argparse.ArgumentParser):
     def __init__(self):
         # noinspection PyTypeChecker
         super().__init__(
-            prog=f"\u001b[0;36;40mcategorpy\u001b[0;0m",
+            prog="\u001b[0;36;40mcategorpy\u001b[0;0m",
             description=(
                 "Run with no arguments to scrape the last entered url and "
                 "begin seeding with `transmission-daemon'. Tweak the page "

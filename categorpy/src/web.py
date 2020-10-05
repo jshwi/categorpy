@@ -30,7 +30,8 @@ class ScrapeWeb:
         header = {"User-Agent": "Mozilla/5.0"}
         try:
             html = request.Request(search, headers=header)
-            webpage = request.urlopen(html).read()
+            webio = request.urlopen(html)
+            webpage = webio.read()
             self.soup = bs4.BeautifulSoup(webpage, "html.parser")
         except (
             client.IncompleteRead,

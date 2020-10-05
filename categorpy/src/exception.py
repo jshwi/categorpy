@@ -8,10 +8,9 @@ If exception is not fatal display a summary and log the rest to file
 
 If fatal display a cleaner summary and log the stack-trace to file
 """
-import logging
 import sys
 
-from . import locate
+from . import log, locate
 
 
 class AppErrs:
@@ -20,19 +19,18 @@ class AppErrs:
     Configure what will be logged to file
 
     :param header:  What will be display to stdout
-    :key name:      The name of the logger
-    :key level:     The logging level
-    :key sendto:    Where to direct the exception stream
-    :key code:      The exit code
+    :param name:      The name of the logger
+    :param level:     The logging level
+    :param code:      The exit code
     """
 
-    def __init__(self, header, **kwargs):
+    def __init__(self, header, name="error", level="exception", code=1):
         self.header = header
-        self.name = kwargs.get("name", "error")
-        self.logger = logging.getLogger(self.name)
-        self.level = kwargs.get("level", "exception")
-        self.sendto = kwargs.get("sendto", sys.stderr)
-        self.code = kwargs.get("code", 1)
+        self.name = name
+        self.level = level
+        self.code = code
+        self.logger = log.get_logger(self.name)
+        self.sendto = sys.stderr if self.code else sys.stdout
 
     def summary(self, body=None):
         """Summary to be displayed to console
@@ -89,11 +87,7 @@ def exit_fatal(err):
 def terminate_proc():
     """Terminate the process"""
     apperrs = AppErrs(
-        "Process Terminated",
-        name=locate.APPNAME,
-        level="debug",
-        sendto=sys.stdout,
-        code=0,
+        "Process Terminated", name=locate.APPNAME, level="debug", code=0
     )
     apperrs.summary()
     apperrs.log(apperrs.header, exc_info=True)
