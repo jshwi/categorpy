@@ -2,11 +2,13 @@
 parser
 ======
 
-Commandline arguments parsed here
+Parse commandline arguments
 """
 import argparse
 import sys
 from contextlib import redirect_stdout
+
+from . import textio, locate, log
 
 
 class Parser(argparse.ArgumentParser):
@@ -19,7 +21,7 @@ class Parser(argparse.ArgumentParser):
     will be initialized
     """
 
-    def __init__(self, history):
+    def __init__(self):
         # noinspection PyTypeChecker
         super().__init__(
             prog=f"\u001b[0;36;40mcategorpy\u001b[0;0m",
@@ -36,10 +38,8 @@ class Parser(argparse.ArgumentParser):
                 prog, max_help_position=55
             ),
         )
-        self.history = history
         self._add_arguments()
         self.args = self.parse_args()
-        self._parse_url()
 
     def _add_arguments(self):
         self.add_argument(
@@ -66,22 +66,47 @@ class Parser(argparse.ArgumentParser):
             help="scrape a single digit page number or a range e.g. 1-5",
         )
 
-    def _parse_url(self):
-        """Parse the history file for the last entry added to the json
-        object
 
-        If no history has been recorded notify the user and print the
-        argparse help
-        :return: Path from history
-        """
-        if not self.args.url:
-            try:
-                val = self.history.object["history"][-1]
-                self.args.__dict__["url"] = val["url"]
-            except (FileNotFoundError, KeyError):
-                with redirect_stdout(sys.stderr):
-                    print(
-                        "\u001b[0;31;40myou have no search history\u001b[0;0m"
-                    )
-                    self.print_help()
-                sys.exit(1)
+def parse_url(argparser):
+    """Parse the history file for the last entry added to the json
+    object. If no history has been recorded notify the user and print
+    the argparse help.
+
+    :param argparser:   ``argparse.ArgumentParser`` ``Namespace`` which
+                        contains the ``url`` parameter and the
+                        ``print_help`` method
+    :return:            Url to scrape for torrents
+    """
+    history = textio.TextIO(locate.APPFILES.histfile, sort=False)
+
+    history.read_json()
+
+    try:
+        url = history.object["history"][-1]["url"]
+        textio.record_hist(history, url)
+        return url
+    except (FileNotFoundError, KeyError):
+        logger = log.get_logger()
+        with redirect_stdout(sys.stderr):
+            announce = "you have no search history"
+            print(f"\u001b[0;31;40m{announce}\u001b[0;0m")
+            argparser.print_help()
+        logger.exception(announce)
+        sys.exit(1)
+
+
+def get_namespace(argparser):
+    """Complete the ``argparse`` ``Namespace`` object by populating the
+    ``url`` object if one needs to be populated and one can be populated
+    (else raise error) then return the ``Namespace`` object from
+    ``argparse``
+
+    :param argparser:   Instantiated ``argparse.ArgumentParser`` object
+                        for commandline arguments
+    :return:            Instantiated ``argparse.Namespace`` object for
+                        commandline arguments
+    """
+    if not argparser.args.url:
+        argparser.args.url = parse_url(argparser)
+
+    return argparser.args

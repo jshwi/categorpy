@@ -4,16 +4,12 @@ scrape
 
 Scrape the web and parse it's torrents
 """
-import logging
-import sys
 from http import client
 from urllib import request, error
 
 import bs4
 
-from . import normalize
-
-ERRLOGGER = logging.getLogger("error")
+from . import exception, normalize
 
 
 class ScrapeWeb:
@@ -24,14 +20,7 @@ class ScrapeWeb:
     def __init__(self):
         self.soup = bs4.BeautifulSoup
         self.magnets = []
-        self.obj = {}
-
-    @staticmethod
-    def url_error(err):
-        ERRLOGGER.error(msg="", exc_info=True)
-        _err = str(err).split("] ")
-        print(_err[1].replace(">", ""))
-        sys.exit(1)
+        self.object = {}
 
     def process_request(self, search):
         """Begin the webscraping here
@@ -43,12 +32,16 @@ class ScrapeWeb:
             html = request.Request(search, headers=header)
             webpage = request.urlopen(html).read()
             self.soup = bs4.BeautifulSoup(webpage, "html.parser")
-        except (client.IncompleteRead, error.URLError) as err:
-            self.url_error(err)
+        except (
+            client.IncompleteRead,
+            error.URLError,
+            client.RemoteDisconnected,
+        ) as err:
+            exception.exit_error(err)
 
     def scrape_magnets(self):
         """Extract the usable data from the magnetdata"""
-        self.magnets = []  # reset
+        self.magnets.clear()
         for result in self.soup("a"):
             href = result.get("href")
             if href and (href.startswith("magnet")):
@@ -56,7 +49,15 @@ class ScrapeWeb:
 
     def parse_magnets(self):
         """Make sense of the scraped content"""
+        self.object.clear()
         for magnet in self.magnets:
             name = normalize.Magnet(magnet)
             name.normalize()
-            self.obj.update({name.magnet: magnet})
+            self.object.update({name.magnet: magnet})
+
+    def get_scraped_keys(self):
+        """Return a list of scraped names
+
+        :return: List of magnet names
+        """
+        return list(self.object.keys())

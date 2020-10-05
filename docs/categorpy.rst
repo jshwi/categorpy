@@ -6,7 +6,12 @@ categorpy
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: categorpy.src.config
+.. automodule:: categorpy.src.client
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: categorpy.src.exception
     :members:
     :undoc-members:
     :show-inheritance:
@@ -21,12 +26,27 @@ categorpy
     :undoc-members:
     :show-inheritance:
 
+.. automodule:: categorpy.src.locate
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: categorpy.src.log
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 .. automodule:: categorpy.src.main
     :members:
     :undoc-members:
     :show-inheritance:
 
 .. automodule:: categorpy.src.normalize
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: categorpy.src.pages
     :members:
     :undoc-members:
     :show-inheritance:

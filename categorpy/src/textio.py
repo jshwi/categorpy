@@ -4,12 +4,12 @@ categorpy.src.textio
 
 Write and read app data.
 """
-import contextlib
 import datetime
 import json
 import logging
 import logging.handlers
 import os
+import pathlib
 
 from pygments import highlight
 
@@ -82,6 +82,7 @@ class TextIO:
             )
         elif mode == "w":
             self.ispath = True
+        return mode
 
     def append(self, content):
         """Append an entry to a file
@@ -171,36 +172,6 @@ def make_logger(logdir, name, debug=False):
     logger.addHandler(filehandler)
 
 
-class StreamLogger:
-    """Run as a context class using ``with`` to capture output stream"""
-
-    def __init__(self, name="debug", level="DEBUG"):
-        self.logger = logging.getLogger(name)
-        self.name = self.logger.name
-        self.level = getattr(logging, level)
-        self._redirector = contextlib.redirect_stdout(self)
-
-    def write(self, msg):
-        """Will be called when used as a contextlib action
-
-        :param msg: The message to log - stdout stream
-        """
-        if msg and not msg.isspace():
-            self.logger.log(self.level, msg)
-
-    def flush(self):
-        """For when we are capturing stdout or stderr"""
-        pass  # pylint: disable=W0107
-
-    def __enter__(self):
-        self._redirector.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # let contextlib do any exception handling here
-        self._redirector.__exit__(exc_type, exc_val, exc_tb)
-
-
 def pygment_print(string):
     """Print with ``pygments``
 
@@ -239,3 +210,20 @@ def record_hist(history, url):
     history.append_json_array(
         ("history", {"id": _id, "timestamp": timestamp, "url": url})
     )
+
+
+def initialize_paths_file(paths):
+    """Make default file if it doesn't exist and read the file for paths
+    that the user wants to scan for existing files to filter out of
+    download
+
+    Default path to scan is the user's home directory
+
+    :return: List of paths to scan for files
+    """
+    while True:
+        pathio = TextIO(paths)
+        if not pathio.read_to_list():
+            pathio.write(str(pathlib.Path.home()))
+            continue
+        return pathio.read_to_list()
