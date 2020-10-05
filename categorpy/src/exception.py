@@ -64,25 +64,39 @@ def exit_max_auth(tally):
     :param tally:   Log the amount of incorrect attempts that have been
                     made
     """
-    _apperrs = AppErrs("Too many incorrect password attempts", level="error")
-    _apperrs.summary(
+    apperrs = AppErrs("Too many incorrect password attempts", level="error")
+    apperrs.summary(
         "please update your password in `transmission-daemon' settings.json "
         "and try again",
     )
-    _apperrs.log(tally)
+    apperrs.log(tally)
+
+
+def exit_fatal(err):
+    """Exit if fatal error indicates ``transmission-rpc`` cannot be run
+
+    :param err: The error that was raised
+    """
+    apperrs = AppErrs("Fatal error")
+    apperrs.summary(
+        "the process could not continue\n"
+        "`transmission-daemon' may not be configured correctly\n"
+        "please check logs for more information",
+    )
+    apperrs.log(str(err))
 
 
 def terminate_proc():
     """Terminate the process"""
-    _apperrs = AppErrs(
+    apperrs = AppErrs(
         "Process Terminated",
         name=locate.APPNAME,
         level="debug",
         sendto=sys.stdout,
         code=0,
     )
-    _apperrs.summary()
-    _apperrs.log(_apperrs.header, exc_info=True)
+    apperrs.summary()
+    apperrs.log(apperrs.header, exc_info=True)
 
 
 def exit_error(err):
