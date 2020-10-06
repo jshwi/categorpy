@@ -1,7 +1,7 @@
 # noinspection PyUnresolvedReferences,PyStatementEffect
-_.flush  # unused method (categorpy/src/log.py:34)
+_.flush  # unused method (categorpy/src/log.py:78)
 # noinspection PyUnresolvedReferences,PyStatementEffect
-_.reset  # unused method (categorpy/src/log.py:57)
+_.reset  # unused method (categorpy/src/log.py:103)
 # noinspection PyUnresolvedReferences,PyStatementEffect
 project  # unused variable (docs/conf.py:22)
 # noinspection PyUnresolvedReferences,PyStatementEffect

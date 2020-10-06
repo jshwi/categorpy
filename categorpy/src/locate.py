@@ -14,7 +14,7 @@ APPNAME = "categorpy"
 
 class AppDirs(appdirs.AppDirs):
     """Application directories for package inheriting ``AppDirs`` from
-    module ``appdirs``
+    module ``appdirs``.
     """
 
     def __init__(self):
@@ -26,7 +26,7 @@ class AppDirs(appdirs.AppDirs):
         )
 
     def _initialize_appdirs(self):
-        # create directories for persistent data storage for app
+        # create directories for persistent data storage for app.
         dirs = [self.user_cache_dir, self.user_config_dir, self.user_log_dir]
         for _dir in dirs:
             path = pathlib.Path(_dir)
@@ -35,7 +35,7 @@ class AppDirs(appdirs.AppDirs):
 
 class AppFiles(AppDirs):
     """Application file paths inheriting ``AppDirs`` for directory
-    paths
+    paths.
     """
 
     def __init__(self):
@@ -43,6 +43,9 @@ class AppFiles(AppDirs):
         self.histfile = os.path.join(self.user_cache_dir, "history")
         self.blacklist = os.path.join(self.user_config_dir, "blacklist")
         self.paths = os.path.join(self.user_config_dir, "paths")
+        self.config = os.path.join(self.user_config_dir, "config.ini")
+        self.torrents = os.path.join(self.client_dir, "torrents")
+        self.settings = os.path.join(self.client_dir, "settings.json")
         self._initialize_appfiles()
 
     def _initialize_appfiles(self):
@@ -54,5 +57,4 @@ class AppFiles(AppDirs):
             path.touch()
 
 
-APPDIRS = AppDirs()
-APPFILES = AppFiles()
+APP = AppFiles()

@@ -16,16 +16,6 @@ categorpy
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: categorpy.src.config
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-.. automodule:: categorpy.src.exception
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 .. automodule:: categorpy.src.find
     :members:
     :undoc-members:
@@ -51,27 +41,12 @@ categorpy
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: categorpy.src.pages
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-.. automodule:: categorpy.src.parser
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 .. automodule:: categorpy.src.textio
     :members:
     :undoc-members:
     :show-inheritance:
 
 .. automodule:: categorpy.src.torrents
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-.. automodule:: categorpy.src.web
     :members:
     :undoc-members:
     :show-inheritance:
