@@ -13,7 +13,11 @@ from . import normalize, locate, log, torrents, textio
 
 
 class Ratio:
-    """Work out the ratio of matching words to pass the cutoff"""
+    """Work out the ratio of matching words to pass the cutoff.
+
+    :param string1: The main string to test against.
+    :param string2: The string to match the ratio against ``string1``.
+    """
 
     exclude = ["and"]
 
@@ -24,12 +28,11 @@ class Ratio:
 
     def count_obj(self):
         """Get ca key-value pair for a word and for the word itself and
-        the number of occurrences of it within a string
+        the number of occurrences of it within a string. If there are
+        too many reoccurrences of a word it can inflate the ratio for a
+        similar word.
 
-        If there are too many reoccurrences of a word it can inflate the
-        ratio for a similar word
-
-        :return: The dictionary object
+        :return: The dictionary object.
         """
         return {
             w: self.string2.string.split().count(w)
@@ -40,28 +43,24 @@ class Ratio:
     @staticmethod
     def length_of_match(word_count):
         """Get the length (in letters) of a word and its single or
-        multiple occurrences
+        multiple occurrences.
 
         :param word_count:  Dictionary object containing the word as the
-                            key and the occurrences of it as the value
+                            key and the occurrences of it as the value.
         :return:            An integer value for the length of the word
                             and its variable occurrences in terms of the
-                            the number of letters only
+                            the number of letters only.
         """
         return [len(k * v) for k, v in word_count.items()]
 
     def work_percentage(self, match_len):
         """Get the final number of the length of the length of the
-        string
+        string. Get the length of the string containing it. Work out the
+        percentage that this one word occupies within the string.
 
-        Get the length of the string containing it
-
-        Work out the percentage that this one word occupies within the
-        string
-
-        :param match_len:   The one word analyzed within the string
+        :param match_len:   The one word analyzed within the string.
         :return:            An integer value for the percentage of the
-                            string the word takes up
+                            string the word takes up.
         """
         try:
             sum_ = sum(match_len)
@@ -72,10 +71,9 @@ class Ratio:
             return 0
 
     def word_ratio(self):
-        """Get the ratio of substrings within the two strings
+        """Get the ratio of substrings within the two strings.
 
-        :return:    An integer for the percentage (or float - can't
-                    remember right now)
+        :return: An integer for the percentage.
         """
         word_count = self.count_obj()
         match_len = self.length_of_match(word_count)
@@ -84,86 +82,94 @@ class Ratio:
 
     def get_ratio(self):
         """Get the final number of the ratio of matches between the
-        two strings
+        two strings.
 
-        :return: An integer value for the ratio
+        :return: An integer value for the ratio.
         """
         self.string1.normalize()
         self.string2.normalize()
         self.word_ratio()
 
 
-def match_ratio(magnet, exclude, cutoff):
-    """Boolean for match or no match
-
-    :param magnet:      The string were filtering against
-    :param exclude:    The owned or blacklisted object we are testing
-                        against
-    :param cutoff:
-    :return:            True or False
-    """
-    logger = log.get_logger()
-    ratio = Ratio(magnet, exclude)
-    ratio.get_ratio()
-    match = ratio.int > cutoff
-    if match:
-        logger.debug("[RATIO] {%s: %s}", magnet, ratio.int)
-    return match
-
-
-def match_globs(magnet, exclude):
-    """Append files matching globs which are supported in certain
-    data-files
-
-    :param magnet:  Match the globs against the magnet-files to
-                    filter out the unwanted magnets
-    :param exclude:
-    """
-    logger = log.get_logger()
-    try:
-        exclude = exclude.replace(" ", "_")
-        match = fnmatch.fnmatch(magnet.casefold(), exclude.casefold())
-        if match:
-            logger.debug("[PATTERN] {%s: %s}", magnet, exclude)
-        return match
-    except re.error as err:
-        logger.warning(msg=str(err), exc_info=True)
-        return False
-
-
 class Find:
-    """Find files by words not fuzziness
+    """Find files by words or by globs - not fuzziness.
 
-    :param cutoff: Percentage threshold for equality
+    :param cutoff: Percentage threshold for equality. If over 7 words
+                    in 10 are the same (by default) then exclude file
+                    from being loaded.
+    :param globs:   List of ``types`` that will not be tested for word
+                    similarity but for glob patterns.
+    :param types:   Lists of files to test against found magnets for
+                    equality.
     """
 
-    def __init__(self, cutoff=70, globs=None, **kwargs):
-        self.types = kwargs
+    logger = log.get_logger()
+    errlogger = log.get_logger("error")
+
+    def __init__(self, cutoff=70, globs=None, **types):
+        self.cutoff = cutoff
+        self.globs = globs if globs else []
+        self.types = types
         self.found = []
         self.rejected = []
-        self.cutoff = cutoff
-        self.glob = globs if globs else []
 
-    def _get_match(self, key, magnet, exclude):
-        if key in self.glob:
-            return match_globs(magnet, exclude)
-        return match_ratio(magnet, exclude, self.cutoff)
+    def match_ratio(self, magnet, exclude):
+        """Boolean for match or no match.
+
+        :param magnet:  The string were filtering against.
+        :param exclude: The owned or blacklisted object we are testing
+                        against.
+        :return:        Is the ratio above the cutoff? True or False.
+        """
+        ratio = Ratio(magnet, exclude)
+        ratio.get_ratio()
+        match = ratio.int > self.cutoff
+        if match:
+            self.logger.debug("[RATIO] {%s: %s}", magnet, ratio.int)
+        return match
+
+    @classmethod
+    def match_globs(cls, magnet, exclude):
+        """Append files matching globs which are supported in certain
+        data-files.
+
+        :param magnet:  Match the globs against the magnet-files to
+                        filter out the unwanted magnets.
+        :param exclude: String that we do not want to include when adding
+                        torrents to ``transmission-rpc``.
+        """
+        try:
+            exclude = exclude.replace(" ", "_")
+            match = fnmatch.fnmatch(magnet.casefold(), exclude.casefold())
+            if match:
+                cls.logger.debug("[PATTERN] {%s: %s}", magnet, exclude)
+            return match
+        except re.error as err:
+            cls.errlogger.debug(str(err), exc_info=True)
+            return False
+
+    def _is_match(self, key, magnet, exclude):
+        # either match by ratio of matching words of match by glob
+        # patterns
+        if key in self.globs:
+            return self.match_globs(magnet, exclude)
+        return self.match_ratio(magnet, exclude)
 
     def iterate_owned(self, magnet):
-        """Loop through the owned files against the magnet link files
+        """Loop through the owned files against the magnet link files.
 
-        :param magnet: The decoded magnet data
+        :param magnet: The decoded magnet data.
         """
         for key in self.types:
             for exclude in self.types[key]:
-                if self._get_match(key, magnet, exclude):
+                if self._is_match(key, magnet, exclude):
                     self.rejected.append(magnet)
                     return key
         self.found.append(magnet)
         return "found"
 
     def display_tally(self):
-        """Display a live tally of where the process is for the user"""
+        """Display a live tally of where the process is for the user."""
         print(
             f"found: {len(self.found)}    rejected: {len(self.rejected)}",
             end="\r",
@@ -172,33 +178,66 @@ class Find:
 
     def iterate(self, magnets):
         """Iterate through the owned, blacklisted and magnet files and
-        display what is happening to the user
+        display what is happening to the user. Log occurrences to info
+        logfile. Catch stacktrace from ValueError if there is nothing to
+        retrieve and simply inform the user that nothing was found.
 
-        Log occurrences to info logfile
-
-        Catch stacktrace from ValueError if there is nothing to retrieve
-        and simply inform the user that nothing was found
-
-        :param magnets: The scraped torrent data
+        :param magnets: The scraped torrent data.
         """
-        logger = log.get_logger()
         try:
             self.found.clear()
             self.rejected.clear()
             for magnet in magnets:
                 status = self.iterate_owned(magnet)
                 status = status.upper()
-                logger.info("[%s] %s", status, magnet)
+                self.logger.info("[%s] %s", status, magnet)
                 self.display_tally()
         except ValueError as err:
-            logger.exception(err)
+            self.errlogger.debug(str(err), exc_info=True)
             print("Search returned no results...")
 
 
-def index_path(paths_list):
-    """get list of system files"""
+def instantiate_find(cutoff):
+    """Loop over page numbers entered for URL. Instantiate ``Find``
+    class with all the lists to match against. Load up ``transmission``.
+
+    :param cutoff:  The amount of similar words that are allowed in.
+                    By default the cutoff is 70 (%), as in anything
+                    higher will mean a matching string.
+    :return:        Instantiated ``find.Find`` object.
+    """
+    blacklistio = textio.TextIO(locate.APP.blacklist)
+    blacklisted = blacklistio.read_to_list()
+    decoder = torrents.Read()
+
+    print("Scanning local torrents")
+
+    decoder.parse_torrents()
+
+    paths = textio.initialize_paths_file(locate.APP.paths)
+    owned = log.log_time("Indexing", index_path, args=(paths,))
+    downloading = decoder.get_decoded_names()
+
+    return Find(
+        cutoff=cutoff,
+        globs=["blacklisted"],
+        downloading=downloading,
+        blacklisted=blacklisted,
+        owned=owned,
+    )
+
+
+def index_path(paths):
+    """get list of all system files with the wildcard glob pattern to
+    ``pathlib.Path``.
+
+    :param paths:   List of paths that the user has configured to
+                    analyze for files.
+    :return:        List of indexed file basenames (not their full
+                    path).
+    """
     files = []
-    for path in paths_list:
+    for path in paths:
         pathobj = pathlib.Path(path)
         files.extend(
             [
@@ -208,34 +247,3 @@ def index_path(paths_list):
             ]
         )
     return files
-
-
-def instantiate_find():
-    """Loop over page numbers entered for url
-
-    Instantiate fuzzy find class with all the lists to match against
-    print report and cache report files and get list of unmatched files
-    that can be downloaded
-
-    load up ``transmission``
-
-    :return: Instantiated ``find.Find`` object
-    """
-    blacklistio = textio.TextIO(locate.APPFILES.blacklist)
-    blacklist = blacklistio.read_to_list()
-    _torrents = torrents.Torrents()
-
-    print("Scanning local torrents")
-
-    _torrents.parse_torrents()
-
-    paths_list = textio.initialize_paths_file(locate.APPFILES.paths)
-    idx = log.log_time("Indexing", index_path, args=(paths_list,))
-    keys = _torrents.get_decoded_names()
-
-    return Find(
-        downloading=keys,
-        blacklisted=blacklist,
-        owned=idx,
-        globs=["blacklisted"],
-    )

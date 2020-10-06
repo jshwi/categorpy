@@ -4,46 +4,28 @@ categorpy.src.client
 
 All things ``transmission-rpc``.
 """
+import sys
+
 import requests
 import transmission_rpc
 
-from . import auth, config, exception, locate, log, pages, textio, web
+from . import auth, locate, log, textio, torrents
 
 
-def prior_auth(entered):
-    """Start tally of incorrect login attempts and log these as info to
-    the ``info.log`` file
-
-    On the 3rd attempt log this to the ``error.log`` file
-
-    Announce that the ``transmission-daemon`` settings.json file may
-    need updating if user does not know their password
-
-    :param entered: Number of times an incorrect password has been
-                    entered
-    """
-    logger = log.get_logger()
-    tally = f"{entered} incorrect password attempts"
-    logger.info(tally)
-    if entered == 3:
-        exception.exit_max_auth(tally)
-    print("\nincorrect password: please try again")
-
-
-def instantiate_client(keyring, settings):
+def get_client(keyring, settings):
     """Attempt to instantiate the ``transmission_rpc.Client`` class or
     log an error and explain the nature of the fault to the user before
-    exiting with a non-zero exit code
+    exiting with a non-zero exit code.
 
     :param keyring:     Instantiated ``Keyring`` object to store and
-                        retrieve passwords
+                        retrieve passwords.
     :param settings:    Dictionary object containing
                         ``transmission-daemon`` settings from
-                        settings.json
-    :return:            Instantiated ``transmission_rpc.Client`` class
+                        settings.json.
+    :return:            Instantiated ``transmission_rpc.Client`` class.
     """
     password_protect = False
-    logger = log.get_logger()
+    errlogger = log.get_logger("error")
     while True:
         try:
             # if `keyring.password' is not None on first try a password
@@ -62,7 +44,7 @@ def instantiate_client(keyring, settings):
             # is False and unless any http errors etc. are raised
             # transmission_rpc.Client will be returned from this
             # function
-            with log.StreamLogger(name="transmission", level="DEBUG"):
+            with log.StreamLogger("transmission"):
                 client = transmission_rpc.Client(**settings)
 
             # if the process has made it this far then if
@@ -72,130 +54,100 @@ def instantiate_client(keyring, settings):
             # they do not need to use a password with this program again
             # and afterwards will proceed to break and return client
             if not keyring.saved and not keyring.headless and password_protect:
-                choice = input("would you like to save this password?\n")
+                choice = input("save password? [y/N]\n")
                 if choice.casefold() == "y":
                     keyring.save_password()
                     print("password saved")
+
             return client
 
         except transmission_rpc.error.TransmissionError as err:
+            errlogger.debug(str(err), exc_info=True)
             password_protect = True
 
-            try:
-                # if more than 3 incorrect password attempts have been made
-                # the process will give up and exit
-                if keyring.entered >= 1:
-                    prior_auth(keyring.entered)
+            # if more than 3 incorrect password attempts have been made
+            # the process will give up and exit
+            if keyring.entered >= 1:
+                auth.prior_auth(keyring.entered)
 
-                # if the process has reached this block than the client has
-                # attempted to be instantiated but has raised a
-                # transmission_rpc.error.TransmissionError due to either
-                # not having entered a password yet or not entered a
-                # correct password previously
-                logger.debug(str(err), exc_info=True)
-                keyring.add_password()
-            except (KeyboardInterrupt, EOFError):
-                exception.terminate_proc()
-
+            # if the process has reached this block than the client has
+            # attempted to be instantiated but has raised a
+            # transmission_rpc.error.TransmissionError due to either
+            # not having entered a password yet or not entered a
+            # correct password previously
+            keyring.add_password()
             settings["password"] = keyring.password
-
-            # continue on to attempt to instantiate the client again
-            continue
 
         # will be raised from a series of errors not directly invoked
         # by this process such as those from the requests library or
         # urllib etc
         except (requests.exceptions.ConnectionError, ValueError) as err:
-            exception.exit_fatal(err)
+            errlogger.exception(str(err))
+            print(
+                "\u001b[0;31;40mFatal error\u001b[0;0m{body}\n"
+                "the process could not continue\n"
+                "`transmission-daemon' may not be configured correctly\n"
+                "please check logs for more information",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
 
-def run_client(unowned_magnets, unmatched, keyring, settings):
-    """Load the magnet links into the rpc client
-
-    :param unowned_magnets: Magnets not owned by user so good to load
-    :param unmatched:       Unmatched human readable names of magnets
-    :param keyring:         Instantiated ``Keyring`` object to store and
-                            retrieve passwords
-    :param settings:        Dictionary object containing
-                            ``transmission-daemon`` settings from
-                            settings.json
-    :return:                Info regarding what torrent were loaded into
-                            client
-    """
-    client = instantiate_client(keyring, settings)
-    for magnet in unowned_magnets:
-        client.add_torrent(magnet)
-    newfiles = "- " + "\n- ".join(unmatched)
-    return (
-        f"The Following Unmatched Torrents Have Just Been Added:\n"
-        f"{newfiles}\n"
-    )
-
-
-def start_transmission(magnets, unmatched, keyring, settings):
+def load_client(magnets, unmatched, keyring, settings):
     """Compare magnet files parsed from bencode text into plaintext
-    against existing files on the user's system
+    against existing files on the user's system. If the
+    ``matched_magnets`` list has been populated announce to the user the
+    files which have begun downloading. Announce to user if no new files
+    can be downloaded from the scrape.
 
-    If the `matched_magnets` list has been populated announce to the
-    user the files which have begun downloading
-
-    Announce to user if no new files can be downloaded from the scrape
-
-    :param magnets:         List of magnet contents (not paths)
+    :param magnets:         List of magnet contents (not paths).
     :param unmatched:       List of torrents that have been scraped and
-                            are not owned (in plaintext)
-
+                            are not owned (in plaintext).
     :param keyring:         Instantiated ``Keyring`` object to store and
-                            retrieve passwords
+                            retrieve passwords.
     :param settings:        Dictionary object containing
                             ``transmission-daemon`` settings from
-                            settings.json
+                            settings.json.
     :return:                Info summary for what has happened whilst
-                            running ``transmission-daemon``
+                            running ``transmission-daemon``.
     """
     unowned_magnets = [v for k, v in magnets.items() if k in unmatched]
     if unowned_magnets:
-        return run_client(unowned_magnets, unmatched, keyring, settings)
+        client = get_client(keyring, settings)
+        for magnet in unowned_magnets:
+            client.add_torrent(magnet)
+        return (
+            "The Following Unmatched Torrents Have Just Been Added:\n"
+            + "- "
+            + "\n- ".join(unmatched)
+        )
     return "*** There's Nothing to Add ***\n"
 
 
 def transmission(args, find):
-    """Take the url, selected page numbers, iterated file matches and
+    """Take the URL, selected page numbers, iterated file matches and
     ``transmission-daemon`` settings.json object and iterate over the
-    page-range and download torrents
+    page-range and download torrents.
 
     :param args:    Instantiated ``argparse.Namespace`` object for
-                    commandline arguments
+                    commandline arguments.
     :param find:    Instantiated ``find.Find`` object containing
-                    found non-matching or non-blacklisted torrents
+                    found non-matching or non-blacklisted torrents.
     """
     logger = log.get_logger()
-    parse_pages = pages.Pages(args.url, args.pages)
-    scraper = web.ScrapeWeb()
-    settings = config.client_settings()
-    keyring = auth.Keyring(locate.APPNAME, settings.get("username", ""))
-    settings["password"] = keyring.password
-
-    for i in range(parse_pages.start, parse_pages.stop):
-        if parse_pages.ispage:
-            args.url = parse_pages.select_page_number(i)
-
-        print(f"Pg. {i}")
-
+    pages = torrents.Pages(args.url, args.pages)
+    scraper = torrents.Scrape()
+    settings = textio.client_settings()
+    keyring = auth.Keyring(locate.APP.appname, settings.get("username", ""))
+    for page in range(pages.start, pages.stop):
+        if pages.ispage:
+            args.url = pages.page_number(page)
+        print(f"Pg. {page}")
         scraper.process_request(args.url)
-
         scraper.scrape_magnets()
-
         scraper.parse_magnets()
-
-        scraper_keys = scraper.get_scraped_keys()
-
-        find.iterate(scraper_keys)
-
-        info = start_transmission(
-            scraper.object, find.found, keyring, settings
-        )
-
+        magnets = scraper.get_names()
+        find.iterate(magnets)
+        info = load_client(scraper.object, find.found, keyring, settings)
         logger.info("\n%s", info)
-
         textio.pygment_print(info)
