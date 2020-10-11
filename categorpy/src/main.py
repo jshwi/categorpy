@@ -22,6 +22,17 @@ class Parser(argparse.ArgumentParser):
         # noinspection PyTypeChecker
         super().__init__(
             prog=f"\u001b[0;36;40m{locate.APP.appname}\u001b[0;0m",
+            description=(
+                "Run with no arguments to scrape the last entered url and "
+                "begin seeding with `transmission-daemon'. Tweak the page "
+                "number of the url history with the `page' argument - enter "
+                "either a single page number or a range. If no url has been "
+                "supplied prior, however, the program will not be able to run "
+                "without the `url' argument followed by the url you wish to "
+                "scrape. Increase or decrease the default cutoff used for "
+                "checking similarity between already owned and blacklisted "
+                "files."
+            ),
             formatter_class=lambda prog: argparse.HelpFormatter(
                 prog, max_help_position=55
             ),
@@ -33,6 +44,7 @@ class Parser(argparse.ArgumentParser):
         self.add_argument(
             "-u",
             "--url",
+            metavar="HISTORY",
             action="store",
             help="scrape new url or the last url entered",
         )
@@ -47,8 +59,9 @@ class Parser(argparse.ArgumentParser):
             ),
         )
         self.add_argument(
-            "--pages",
-            metavar="PAGE or START-STOP",
+            "-p",
+            "--page",
+            metavar="INT or START-END",
             action="store",
             help="scrape a single digit page number or a range e.g. 1-5",
         )
@@ -67,8 +80,7 @@ def parse_url(argparser):
                         ``print_help`` method.
     :return:            URL to scrape for torrents.
     """
-    history = textio.TextIO(locate.APP.histfile, sort=False)
-    history.read_json()
+    history = textio.JsonIO(locate.APP.histfile)
     try:
         url = history.object["history"][-1]["url"]
         textio.record_hist(history, url)
@@ -114,7 +126,7 @@ def main():
     log.initialize_loggers(debug=argparser.args.debug)
     args = get_namespace(argparser)
     try:
-        findobj = find.instantiate_find(args.cutoff)
+        findobj = find.instantiate_find(int(args.cutoff))
         log.log_time(
             "Finding torrents", client.transmission, args=(args, findobj)
         )

@@ -9,7 +9,7 @@ import os
 import pathlib
 import re
 
-from . import normalize, locate, log, torrents, textio
+from . import locate, log, normalize, textio
 
 
 class Ratio:
@@ -206,23 +206,21 @@ def instantiate_find(cutoff):
                     higher will mean a matching string.
     :return:        Instantiated ``find.Find`` object.
     """
-    blacklistio = textio.TextIO(locate.APP.blacklist)
-    blacklisted = blacklistio.read_to_list()
-    decoder = torrents.Read()
+    blacklistio = textio.ListIO(locate.APP.blacklist)
+    downloading = textio.BencodeIO(locate.APP.torrents)
 
     print("Scanning local torrents")
 
-    decoder.parse_torrents()
+    downloading.parse_torrents()
 
     paths = textio.initialize_paths_file(locate.APP.paths)
     owned = log.log_time("Indexing", index_path, args=(paths,))
-    downloading = decoder.get_decoded_names()
 
     return Find(
         cutoff=cutoff,
         globs=["blacklisted"],
-        downloading=downloading,
-        blacklisted=blacklisted,
+        downloading=downloading.names,
+        blacklisted=blacklistio.array,
         owned=owned,
     )
 
