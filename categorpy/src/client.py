@@ -4,12 +4,15 @@ categorpy.src.client
 
 All things ``transmission-rpc``.
 """
+import http.client
 import sys
+import urllib.error
+import urllib.request
 
 import requests
 import transmission_rpc
 
-from . import auth, locate, log, textio, torrents
+from . import auth, locate, log, textio, web
 
 
 def get_client(keyring, settings):
@@ -84,7 +87,7 @@ def get_client(keyring, settings):
         except (requests.exceptions.ConnectionError, ValueError) as err:
             errlogger.exception(str(err))
             print(
-                "\u001b[0;31;40mFatal error\u001b[0;0m{body}\n"
+                "\u001b[0;31;40mFatal error\u001b[0;0m\n"
                 "the process could not continue\n"
                 "`transmission-daemon' may not be configured correctly\n"
                 "please check logs for more information",
@@ -135,8 +138,9 @@ def transmission(args, find):
                     found non-matching or non-blacklisted torrents.
     """
     logger = log.get_logger()
-    pages = torrents.Pages(args.url, args.pages)
-    scraper = torrents.Scrape()
+    pages = web.Pages(args.url, args.page)
+    header = {"User-Agent": "Mozilla/5.0"}
+    scraper = web.Scraper(header)
     settings = textio.client_settings()
     keyring = auth.Keyring(locate.APP.appname, settings.get("username", ""))
     for page in range(pages.start, pages.stop):
@@ -144,10 +148,19 @@ def transmission(args, find):
             args.url = pages.page_number(page)
         print(f"Pg. {page}")
         scraper.process_request(args.url)
-        scraper.scrape_magnets()
-        scraper.parse_magnets()
-        magnets = scraper.get_names()
-        find.iterate(magnets)
+        try:
+            scraper.process_request(args.url)
+        except (
+            http.client.IncompleteRead,
+            urllib.error.URLError,
+            http.client.RemoteDisconnected,
+        ) as err:
+            errlogger = log.get_logger("error")
+            print(f"\u001b[0;31;40m{err}\u001b[0;0m")
+            errlogger.exception(str(err))
+            sys.exit(1)
+        scraper.scrape()
+        find.iterate(scraper.names)
         info = load_client(scraper.object, find.found, keyring, settings)
         logger.info("\n%s", info)
         textio.pygment_print(info)

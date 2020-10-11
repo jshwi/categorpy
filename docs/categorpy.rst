@@ -46,7 +46,7 @@ categorpy
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: categorpy.src.torrents
+.. automodule:: categorpy.src.web
     :members:
     :undoc-members:
     :show-inheritance:

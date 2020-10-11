@@ -7,12 +7,12 @@ Write and read app data.
 import configparser
 import datetime
 import json
-import logging
-import logging.handlers
 import os
 import pathlib
 import sys
 
+# noinspection PyPackageRequirements
+import bencodepy
 from pygments import highlight
 
 # noinspection PyUnresolvedReferences
@@ -21,158 +21,187 @@ from pygments.formatters import Terminal256Formatter  # pylint: disable=E0611
 # noinspection PyUnresolvedReferences
 from pygments.lexers import YamlLexer  # pylint: disable=E0611
 
-from . import locate, log
+from . import locate, log, normalize
 
 
-class TextIO:
-    """Read-write processes relevant to this package.
+class ListIO:
+    """Object to represent file in ``list`` form through the process
+    while keeping the file in sync when changes are made to instance.
 
-    :param path:    Path to read from or to write to.
-    :key method:    Method to manipulate strings when writing from a
-                    list. The method can be any function, or a string if
-                    it is a builtin function belonging to the str class.
-    :key args:      A tuple of args for the method key.
-    :key sort:      Default is True: call False if a list we are writing
-                    should not be sorted.
+    :param file: File to read / write to.
     """
 
-    logger = log.get_logger()
-    errlogger = log.get_logger("error")
+    def __init__(self, file):
+        self.file = file
+        self.array = []
+        self.read()
 
-    def __init__(self, path, _object=None, **kwargs):
-        self.path = path
-        self.ispath = os.path.isfile(path)
-        self.output = ""
-        self.object = _object if _object else {}
-        self.method = kwargs.get("method", None)
-        self.args = kwargs.get("args", ())
+    def _write_list(self):
+        with open(self.file, mode="w") as file:
+            for line in self.array:
+                file.write(line)
 
-    def _output(self, content):
-        self.output = f"{content}\n"
-
-    def read_to_list(self):
-        """Read from a file and return it's content as a list.
-
-        :return: The file's content split into a list.
-        """
-        try:
-            with open(self.path) as file:
-                content = file.read().splitlines()
-            return content
-        except FileNotFoundError as err:
-            self.errlogger.debug(str(err))
-            return []
-
-    def _execute(self, obj):
-        if self.method:
-            try:
-                return getattr(obj, self.method)(*self.args)
-            except TypeError:
-                try:
-                    function = self.method.rsplit(". ", 1)[1]
-                    return getattr(self.method, function)(obj)
-                except AttributeError as err:
-                    self.errlogger.debug(str(err))
-        return obj
-
-    def _compile_string(self, content):
-        self._output("\n".join(f"{self._execute(c)}" for c in content))
-
-    def _write_file(self, mode):
-        with open(self.path, mode) as file:
-            file.write(self.output)
-
-    def _mode(self, mode):
-        if mode == "a":
-            mode, self.ispath = (
-                ("a", self.ispath) if self.ispath else ("w", True)
-            )
-        elif mode == "w":
-            self.ispath = True
-        return mode
-
-    def append(self, content):
-        """Append an entry to a file.
-
-        :param content: The string to append to a file.
-        """
-        self.output = content
-        self._write_file(self._mode("a"))
-
-    def write(self, content):
-        """Write content to a file, replacing all previous content that
-        might have been there.
-
-        :param content: The list to write into the file.
-        """
-        self.output = content
-        self._write_file(self._mode("w"))
+    def clear(self):
+        """Run this before ``self.write`` to start the file over."""
+        self.array.clear()
 
     def read(self):
-        """Read from a file and return a single string, formatted with
-        newlines.
+        """Read from file and add list items to ``self.array``."""
+        if os.path.isfile(self.file):
+            with open(self.file) as file:
+                content = file.read()
+            self.array.extend(content.splitlines())
+
+    def write(self, *lines):
+        """Write content to a file, replacing all previous content that
+        might have been there. Appending to file is the default
+        behaviour.
+
+        :param lines: The list to write into the file.
         """
-        content = self.read_to_list()
-        self._compile_string(content)
+        self.array.extend(lines)
+        self._write_list()
 
-    def read_bytes(self):
-        """Read from a binary and return the content as bytes."""
-        with open(self.path, "rb") as file:
-            self.output = file.read()
 
-    def read_json(self):
-        """Read from a dictionary and return the content as a dictionary
-        object.
+class JsonIO:
+    """Object to represent file in ``json`` form through the process
+    while keeping the file in sync when changes are made to instance.
+
+    :param file: File to read / write to.
+    """
+
+    def __init__(self, file):
+        self.file = file
+        self.object = {}
+        self.read()
+
+    def _write_json(self):
+        with open(self.file, mode="w") as file:
+            file.write(json.dumps(self.object, indent=4))
+
+    def clear(self):
+        """Run this before ``self.write`` to start the file over."""
+        self.object.clear()
+
+    def read(self):
+        """If the ``self.file`` path exists then read its content in the
+        ``self.object`` instance attribute.
         """
-        try:
-            with open(self.path) as file:
-                self.object = json.load(file)
-        except (FileNotFoundError, json.JSONDecodeError) as err:
-            self.errlogger.debug(str(err))
+        if os.path.isfile(self.file):
+            try:
+                with open(self.file) as file:
+                    self.object.update(json.load(file))
+            except json.JSONDecodeError as err:
+                errlogger = log.get_logger("error")
+                errlogger.debug(str(err))
 
-    def append_json_array(self, *args):
+    def write(self, _object):
+        """Write ``dict`` object to file as ``json``.
+
+        :param _object: The ``dict`` object.
+        """
+        self.object.update(_object)
+        self._write_json()
+
+    def append_array(self, **kwargs):
         """Write a tuple argument into a nested dictionary and write to
         a json file with the first index being the key and the second
         the value.
 
-        :param args: A key value pair passed as a tuple.
+        :key array: Name of the array to add items to.
+        :var value: string, object, array etc to append to array.
         """
-        self.read_json()
-        for arg in args:
-            try:
-                self.object[arg[0]].append(arg[1])
-            except KeyError as err:
-                self.errlogger.debug(str(err))
-                self.object[arg[0]] = [arg[1]]
-        with open(self.path, "w") as file:
-            file.write(json.dumps(self.object, indent=4))
+        for key, val in kwargs.items():
+            if key not in self.object:
+                self.object[key] = []
+            self.object[key].append(val)
+        self._write_json()
 
 
-def make_logger(logdir, name, debug=False):
-    """Instantiate the global logging object containing several
-    combined characteristics
-    Create logging dir if one doesn't exist already
-    Ensure all loggers contain the format "/$logdir/$logname"
-    Ensure all loggers either display just the message or
-    date-time, loglevel, message
-    Ensure all loggers are configured to handle rotating logs
-    Do not print logs to stdout or stderr
+class IniIO:
+    """Object to represent file in ``ini`` form through the process
+    while keeping the file in sync when changes are made to instance.
+
+    :param file: File to read / write to.
     """
-    logfile = os.path.join(logdir, f"{name}.log")
-    logger = logging.getLogger(name)
-    formatter = logging.Formatter(
-        fmt="[%(asctime)s] %(levelname)-8s %(message)s",
-        datefmt="%Y-%m-%dT%H:%M:%S",
-    )
-    filehandler = logging.handlers.WatchedFileHandler(logfile)
 
-    filehandler.setFormatter(formatter)
+    def __init__(self, file):
+        self.file = file
+        self.object = configparser.ConfigParser()
 
-    loglevel = logging.DEBUG if debug else logging.INFO
+    def _write_new(self):
+        with open(self.file, "w") as file:
+            self.object.write(file)
 
-    logger.setLevel(loglevel)
+    def initialize_default(self, default):
+        """Write a new ``config.ini`` file with default settings."""
+        self.object.read_dict(default)
+        self._write_new()
 
-    logger.addHandler(filehandler)
+    def initialize_existing(self):
+        """Load an existing ``config.ini`` object into buffer as a
+        dictionary object.
+        """
+        self.object.read(self.file)
+
+
+class BencodeIO:
+    """Parse downloaded data for human readable categorisation."""
+
+    errlogger = log.get_logger("error")
+
+    def __init__(self, torrent_dir):
+        self.torrent_dir = torrent_dir
+        self.names = []
+
+    def _get_torrent_paths(self, paths):
+        """Get the torrent magnet-link files.
+
+        :return: List of torrent magnet-links.
+        """
+        if os.path.isdir(self.torrent_dir):
+            paths.extend(
+                [
+                    os.path.join(self.torrent_dir, t)
+                    for t in os.listdir(self.torrent_dir)
+                ]
+            )
+        return paths
+
+    @classmethod
+    def parse_bencode_object(cls, bencode):
+        """take bencode content (not path) and convert it to human
+        readable text.
+
+        :param bencode: Bytes read from torrent file.
+        """
+        encoded = bencodepy.decode(bencode)
+        obj = normalize.Decoder.decode(encoded)
+        try:
+            if "magnet-info" in obj and "display-name" in obj["magnet-info"]:
+                result = obj["magnet-info"]["display-name"]
+                return result.replace("+", " ")
+        except bencodepy.exceptions.BencodeDecodeError as err:
+            cls.errlogger.exception(str(err))
+        return None
+
+    def parse_torrents(self):
+        """Call to get the readable content from the bencode and create
+        a dictionary object of names and their corresponding magnets.
+        """
+        paths = self._get_torrent_paths(paths=[])
+        for path in paths:
+            # get the bencode bytes from their .torrent file
+            with open(path, mode="rb") as file:
+                bencode = file.read()
+
+            # parse these bytes into human readable plaintext
+            decoded = self.parse_bencode_object(bencode)
+            if decoded:
+
+                # update the torrent file object with the torrent file's
+                # name as the key and it's path as the value
+                self.names.append(decoded)
 
 
 def pygment_print(string):
@@ -197,64 +226,33 @@ def record_hist(history, url):
                     - depending on whether an argument was passed to the
                     commandline.
     """
+
+    def _hist_id(_history):
+        try:
+            return _history.object["history"][-1]["id"] + 1
+        except KeyError:
+            return 0
+
     timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    _id = _hist_id(history)
 
-    try:
-        _id = history.object["history"][-1]["id"] + 1
-    except KeyError:
-        _id = 0
-
-    history.append_json_array(
-        ("history", {"id": _id, "timestamp": timestamp, "url": url})
+    history.append_array(
+        history={"id": _id, "timestamp": timestamp, "url": url}
     )
 
 
-def initialize_paths_file(paths):
+def initialize_paths_file(paths_file):
     """Make default file if it doesn't exist and read the file for paths
     that the user wants to scan for existing files to filter out of
     download. Default path to scan is the user's home directory.
 
     :return: List of paths to scan for files.
     """
-    while True:
-        pathio = TextIO(paths)
-        if not pathio.read_to_list():
-            pathio.write(str(pathlib.Path.home()))
-            continue
-        return pathio.read_to_list()
-
-
-class Config:
-    """Config for the module ``config.ini`` file located in the
-    ``user_config_dir``.
-    """
-
-    def __init__(self):
-        self.config_path = os.path.join(
-            locate.APP.user_config_dir, "config.ini"
-        )
-        self.settings_path = os.path.join(
-            locate.APP.client_dir, "settings.json"
-        )
-        self.object = configparser.ConfigParser()
-        self._default_settings = {
-            "DEFAULT": {"transmission": locate.APP.client_dir}
-        }
-
-    def _write_new(self):
-        with open(self.config_path, "w") as file:
-            self.object.write(file)
-
-    def initialize_default(self):
-        """Write a new ``config.ini`` file with default settings."""
-        self.object.read_dict(self._default_settings)
-        self._write_new()
-
-    def initialize_existing(self):
-        """Load an existing ``config.ini`` object into buffer as a
-        dictionary object.
-        """
-        self.object.read(self.config_path)
+    pathio = ListIO(paths_file)
+    if not os.path.isfile(paths_file):
+        home = str(pathlib.Path.home())
+        pathio.write(home)
+    return pathio.array
 
 
 def client_settings():
@@ -262,16 +260,15 @@ def client_settings():
     ``transmission_daemon`` and return it as a dictionary object parsed
     with the ``json`` module.
     """
-    config = Config()
-    if os.path.isfile(config.config_path):
+    config = IniIO(locate.APP.config)
+    if os.path.isfile(locate.APP.config):
         config.initialize_existing()
     else:
-        config.initialize_default()
+        default = {"DEFAULT": {"transmission": locate.APP.client_dir}}
+        config.initialize_default(default)
     try:
-        settingsio = TextIO(config.settings_path)
-        settingsio.read_json()
+        settingsio = JsonIO(locate.APP.settings)
         return {
-            "address": settingsio.object["rpc-bind-address"],
             "host": settingsio.object["rpc-host-whitelist"],
             "port": settingsio.object["rpc-port"],
             "username": settingsio.object["rpc-username"],

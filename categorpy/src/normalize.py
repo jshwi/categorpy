@@ -9,6 +9,8 @@ draw comparisons between strings.
 import re
 from urllib import parse
 
+from . import log
+
 
 class File:
     """Format strings to a uniform syntax
@@ -103,3 +105,91 @@ class Magnet:
         self.remove_underscore()
         self.remove_quotes()
         self.remove_tuple()
+
+
+class Decoder:
+    """Analyze a dictionary object recursively to decode all nested
+    values containing ``bytes``.
+    """
+
+    @staticmethod
+    def _is_bytes(item):
+        """Determine whether a a value is a ``bytes`` object.
+
+        :param item:    The value to test.
+        :return:        True: is ``bytes``, False: is not.
+        """
+        return isinstance(item, bytes)
+
+    @classmethod
+    def decode_key(cls, key):
+        """If ``key`` is type ``bytes`` return decoded ``str`` object,
+        if not then nothing needs to be done - return the original
+        object.
+
+        :param key: Dictionary key.
+        :return:    Return a decoded ``str``.
+        """
+        if cls._is_bytes(key):
+            return key.decode()
+        return key
+
+    @classmethod
+    def decode_val(cls, val):
+        """A value belonging to a key-value pair can be any object so
+        if the object is not bytes begin the iteration again to iterate
+        and decode over any ``list``, ``dict`` or ``bytes`` object
+        further down.
+
+        :param val: ``str``, ``list``, ``dict`` or ``bytes``.
+        :return:    ``list``, ``dict`` or ``str``.
+        """
+        if cls._is_bytes(val):
+            return val.decode()
+        return cls.decode(val)
+
+    @classmethod
+    def decode_dict(cls, _object):
+        """Pass a ``dict`` object to recursively analyze for values
+        which are the type ``bytes``.
+
+        :param _object: The ``dict`` object.
+        :return:        Analyzed and altered ``dict`` object.
+        """
+        for key in list(_object):
+            val = _object.pop(key)
+            key = cls.decode_key(key)
+            _object[key] = cls.decode_val(val)
+        return _object
+
+    @classmethod
+    def decode_list(cls, _object):
+        """Pass a ``list`` object to recursively analyze for values
+        which are the type ``bytes``.
+
+        :param _object: The ``list`` object.
+        :return:        Analyzed and altered ``list`` object.
+        """
+        for count, val in enumerate(_object):
+            val = _object[count]
+            _object[count] = cls.decode_val(val)
+        return _object
+
+    @classmethod
+    def decode(cls, _object):
+        """Recursively go through a ``list`` or ``dict`` object -
+        ignoring the ``UnicodeDecodeError`` that may occur.
+
+        :param _object: The ``list`` or ``dict`` object.
+        :return:        Analyzed and altered ``list`` or ``dict``
+                        object.
+        """
+        try:
+            if isinstance(_object, dict):
+                return cls.decode_dict(_object)
+            if isinstance(_object, list):
+                return cls.decode_list(_object)
+        except UnicodeDecodeError as err:
+            errlogger = log.get_logger("error")
+            errlogger.exception(str(err))
+        return _object
