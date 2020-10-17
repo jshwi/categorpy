@@ -3,6 +3,60 @@ _.flush  # unused method (categorpy/src/log.py:78)
 # noinspection PyUnresolvedReferences,PyStatementEffect
 _.reset  # unused method (categorpy/src/log.py:103)
 # noinspection PyUnresolvedReferences,PyStatementEffect
+_.APP  # unused attribute (tests/_test.py:23)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.side_effect  # unused attribute (tests/_test.py:26)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.APP  # unused attribute (tests/_test.py:46)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.side_effect  # unused attribute (tests/_test.py:49)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.side_effect  # unused attribute (tests/_test.py:91)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.url  # unused attribute (tests/_test.py:103)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.pages  # unused attribute (tests/_test.py:104)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+fixture_make_loggers  # unused function (tests/conftest.py:17)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+fixture_nocolorcapsys  # unused function (tests/conftest.py:25)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+fixture_mock_appfiles  # unused function (tests/conftest.py:35)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+priority  # unused variable (tests/helpers.py:21)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.set_password  # unused method (tests/helpers.py:26)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+servicename  # unused variable (tests/helpers.py:27)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+username  # unused variable (tests/helpers.py:27)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.get_password  # unused method (tests/helpers.py:32)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+servicename  # unused variable (tests/helpers.py:33)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+username  # unused variable (tests/helpers.py:33)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.delete_password  # unused method (tests/helpers.py:37)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+servicename  # unused variable (tests/helpers.py:38)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+username  # unused variable (tests/helpers.py:38)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.appname  # unused attribute (tests/helpers.py:51)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.config  # unused attribute (tests/helpers.py:57)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.paths  # unused attribute (tests/helpers.py:63)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.settings  # unused attribute (tests/helpers.py:64)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.histfile  # unused attribute (tests/helpers.py:65)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+mock_main  # unused function (tests/helpers.py:228)
+# noinspection PyUnresolvedReferences,PyStatementEffect
+_.input  # unused attribute (tests/helpers.py:258)
+# noinspection PyUnresolvedReferences,PyStatementEffect
 project  # unused variable (docs/conf.py:22)
 # noinspection PyUnresolvedReferences,PyStatementEffect
 copyright  # unused variable (docs/conf.py:24)
