@@ -1,0 +1,253 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>categorpy.src.client &#8212; categorpy 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/graphite.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.client</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for categorpy.src.client</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">client</span>
+<span class="sd">======</span>
+
+<span class="sd">All things ``transmission-rpc``.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">http.client</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">urllib.error</span>
+<span class="kn">import</span> <span class="nn">urllib.request</span>
+
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">transmission_rpc</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">auth</span><span class="p">,</span> <span class="n">locate</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">textio</span><span class="p">,</span> <span class="n">web</span>
+
+
+<div class="viewcode-block" id="get_client"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.client.get_client">[docs]</a><span class="k">def</span> <span class="nf">get_client</span><span class="p">(</span><span class="n">keyring</span><span class="p">,</span> <span class="n">settings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Attempt to instantiate the ``transmission_rpc.Client`` class or</span>
+<span class="sd">    log an error and explain the nature of the fault to the user before</span>
+<span class="sd">    exiting with a non-zero exit code.</span>
+
+<span class="sd">    :param keyring:     Instantiated ``Keyring`` object to store and</span>
+<span class="sd">                        retrieve passwords.</span>
+<span class="sd">    :param settings:    Dictionary object containing</span>
+<span class="sd">                        ``transmission-daemon`` settings from</span>
+<span class="sd">                        settings.json.</span>
+<span class="sd">    :return:            Instantiated ``transmission_rpc.Client`` class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">password_protect</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">errlogger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># if `keyring.password&#39; is not None on first try a password</span>
+            <span class="c1"># has been saved to the keyring from a prior run</span>
+            <span class="c1"># if `keyring.password&#39; is None on first loop but on any</span>
+            <span class="c1"># more than one then a password has been entered during this</span>
+            <span class="c1"># run - if the password is incorrect then a</span>
+            <span class="c1"># transmission.error.TransmissionError will be raised and</span>
+            <span class="c1"># the loop will continue below</span>
+            <span class="c1"># if `keyring.password&#39; is None then no password has been</span>
+            <span class="c1"># saved during this run or a prior run and</span>
+            <span class="c1"># `transmission-daemon&#39; is protected with auth then a</span>
+            <span class="c1"># transmission_rpc.error.TransmissionError will be raised</span>
+            <span class="c1"># and the loop will continue below</span>
+            <span class="c1"># none of this is relevant if &quot;rpc-authentication-required&quot;</span>
+            <span class="c1"># is False and unless any http errors etc. are raised</span>
+            <span class="c1"># transmission_rpc.Client will be returned from this</span>
+            <span class="c1"># function</span>
+            <span class="k">with</span> <span class="n">log</span><span class="o">.</span><span class="n">StreamLogger</span><span class="p">(</span><span class="s2">&quot;transmission&quot;</span><span class="p">):</span>
+                <span class="n">client</span> <span class="o">=</span> <span class="n">transmission_rpc</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="o">**</span><span class="n">settings</span><span class="p">)</span>
+
+            <span class="c1"># if the process has made it this far then if</span>
+            <span class="c1"># password_protected is False break and return client</span>
+            <span class="c1"># if `password_protected&#39; is True user has the option to</span>
+            <span class="c1"># save the password to the OS specific password store so</span>
+            <span class="c1"># they do not need to use a password with this program again</span>
+            <span class="c1"># and afterwards will proceed to break and return client</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">keyring</span><span class="o">.</span><span class="n">saved</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">keyring</span><span class="o">.</span><span class="n">headless</span> <span class="ow">and</span> <span class="n">password_protect</span><span class="p">:</span>
+                <span class="n">choice</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;save password? [y/N]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">choice</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span>
+                    <span class="n">keyring</span><span class="o">.</span><span class="n">save_password</span><span class="p">()</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;password saved&quot;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">client</span>
+
+        <span class="k">except</span> <span class="n">transmission_rpc</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">TransmissionError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">errlogger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">),</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">password_protect</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="c1"># if more than 3 incorrect password attempts have been made</span>
+            <span class="c1"># the process will give up and exit</span>
+            <span class="k">if</span> <span class="n">keyring</span><span class="o">.</span><span class="n">entered</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">auth</span><span class="o">.</span><span class="n">prior_auth</span><span class="p">(</span><span class="n">keyring</span><span class="o">.</span><span class="n">entered</span><span class="p">)</span>
+
+            <span class="c1"># if the process has reached this block than the client has</span>
+            <span class="c1"># attempted to be instantiated but has raised a</span>
+            <span class="c1"># transmission_rpc.error.TransmissionError due to either</span>
+            <span class="c1"># not having entered a password yet or not entered a</span>
+            <span class="c1"># correct password previously</span>
+            <span class="n">keyring</span><span class="o">.</span><span class="n">add_password</span><span class="p">()</span>
+            <span class="n">settings</span><span class="p">[</span><span class="s2">&quot;password&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">keyring</span><span class="o">.</span><span class="n">password</span>
+
+        <span class="c1"># will be raised from a series of errors not directly invoked</span>
+        <span class="c1"># by this process such as those from the requests library or</span>
+        <span class="c1"># urllib etc</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ConnectionError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">errlogger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="se">\u001b</span><span class="s2">[0;31;40mFatal error</span><span class="se">\u001b</span><span class="s2">[0;0m</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;the process could not continue</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;`transmission-daemon&#39; may not be configured correctly</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;please check logs for more information&quot;</span><span class="p">,</span>
+                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="load_client"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.client.load_client">[docs]</a><span class="k">def</span> <span class="nf">load_client</span><span class="p">(</span><span class="n">magnets</span><span class="p">,</span> <span class="n">unmatched</span><span class="p">,</span> <span class="n">keyring</span><span class="p">,</span> <span class="n">settings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compare magnet files parsed from bencode text into plaintext</span>
+<span class="sd">    against existing files on the user&#39;s system. If the</span>
+<span class="sd">    ``matched_magnets`` list has been populated announce to the user the</span>
+<span class="sd">    files which have begun downloading. Announce to user if no new files</span>
+<span class="sd">    can be downloaded from the scrape.</span>
+
+<span class="sd">    :param magnets:         List of magnet contents (not paths).</span>
+<span class="sd">    :param unmatched:       List of torrents that have been scraped and</span>
+<span class="sd">                            are not owned (in plaintext).</span>
+<span class="sd">    :param keyring:         Instantiated ``Keyring`` object to store and</span>
+<span class="sd">                            retrieve passwords.</span>
+<span class="sd">    :param settings:        Dictionary object containing</span>
+<span class="sd">                            ``transmission-daemon`` settings from</span>
+<span class="sd">                            settings.json.</span>
+<span class="sd">    :return:                Info summary for what has happened whilst</span>
+<span class="sd">                            running ``transmission-daemon``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">unowned_magnets</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">magnets</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">unmatched</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">unowned_magnets</span><span class="p">:</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">get_client</span><span class="p">(</span><span class="n">keyring</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">magnet</span> <span class="ow">in</span> <span class="n">unowned_magnets</span><span class="p">:</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">add_torrent</span><span class="p">(</span><span class="n">magnet</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;The Following Unmatched Torrents Have Just Been Added:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;- &quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">- &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">unmatched</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;*** There&#39;s Nothing to Add ***</span><span class="se">\n</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="transmission"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.client.transmission">[docs]</a><span class="k">def</span> <span class="nf">transmission</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">find</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Take the URL, selected page numbers, iterated file matches and</span>
+<span class="sd">    ``transmission-daemon`` settings.json object and iterate over the</span>
+<span class="sd">    page-range and download torrents.</span>
+
+<span class="sd">    :param args:    Instantiated ``argparse.Namespace`` object for</span>
+<span class="sd">                    commandline arguments.</span>
+<span class="sd">    :param find:    Instantiated ``find.Find`` object containing</span>
+<span class="sd">                    found non-matching or non-blacklisted torrents.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">Pages</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">page</span><span class="p">)</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="s2">&quot;Mozilla/5.0&quot;</span><span class="p">}</span>
+    <span class="n">scraper</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">Scraper</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">textio</span><span class="o">.</span><span class="n">client_settings</span><span class="p">()</span>
+    <span class="n">keyring</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">Keyring</span><span class="p">(</span><span class="n">locate</span><span class="o">.</span><span class="n">APP</span><span class="o">.</span><span class="n">appname</span><span class="p">,</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;username&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">page</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pages</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">pages</span><span class="o">.</span><span class="n">stop</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pages</span><span class="o">.</span><span class="n">ispage</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">pages</span><span class="o">.</span><span class="n">page_number</span><span class="p">(</span><span class="n">page</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pg. </span><span class="si">{</span><span class="n">page</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">scraper</span><span class="o">.</span><span class="n">process_request</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">scraper</span><span class="o">.</span><span class="n">process_request</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span>
+            <span class="n">http</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">IncompleteRead</span><span class="p">,</span>
+            <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">URLError</span><span class="p">,</span>
+            <span class="n">http</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">RemoteDisconnected</span><span class="p">,</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">errlogger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\u001b</span><span class="s2">[0;31;40m</span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="se">\u001b</span><span class="s2">[0;0m&quot;</span><span class="p">)</span>
+            <span class="n">errlogger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">scraper</span><span class="o">.</span><span class="n">scrape</span><span class="p">()</span>
+        <span class="n">find</span><span class="o">.</span><span class="n">iterate</span><span class="p">(</span><span class="n">scraper</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">load_client</span><span class="p">(</span><span class="n">scraper</span><span class="o">.</span><span class="n">object</span><span class="p">,</span> <span class="n">find</span><span class="o">.</span><span class="n">found</span><span class="p">,</span> <span class="n">keyring</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">info</span><span class="p">)</span>
+        <span class="n">textio</span><span class="o">.</span><span class="n">pygment_print</span><span class="p">(</span><span class="n">info</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../categorpy.html">categorpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">README</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.client</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Stephen Whitlock.
+    </div>
+  </body>
+</html>

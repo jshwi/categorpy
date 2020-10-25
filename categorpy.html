@@ -1,0 +1,1219 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>categorpy &#8212; categorpy 1.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/graphite.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="README" href="readme.html" />
+    <link rel="prev" title="Categorpy Docs" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="readme.html" title="README"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Categorpy Docs"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-categorpy.src.__init__">
+<span id="categorpy"></span><h1>categorpy<a class="headerlink" href="#module-categorpy.src.__init__" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Turbo charged torrent scraper for ``transmission-daemon``</span>
+
+<span class="go">Scrape entered url for torrents you don&#39;t have and automatically</span>
+<span class="go">load them into the daemon.</span>
+
+<span class="go">Blacklist files you are not interested in.</span>
+
+<span class="go">Scans system for files you already own.</span>
+
+<span class="go">Acknowledges files which are already downloading.</span>
+</pre></div>
+</div>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">usage: categorpy [-h] [-u HISTORY] [-c 70] [-p INT or START-END]</span>
+
+<span class="go">Run with no arguments to scrape the last entered url and begin</span>
+<span class="go">seeding with `transmission-daemon&#39;. Tweak the page number of the url</span>
+<span class="go">history with the `page&#39; argument - enter either a single page number</span>
+<span class="go">or a range. If no url has been supplied prior, however, the program</span>
+<span class="go">will not be able to run without the `url&#39; argument followed by the</span>
+<span class="go">url you wish to scrape. Increase or decrease the default cutoff used</span>
+<span class="go">for checking similarity between already owned and blacklisted files.</span>
+
+<span class="go">optional arguments:</span>
+<span class="go">  -h, --help                                    show this help</span>
+<span class="go">                                                message and exit</span>
+<span class="go">  -u HISTORY, --url HISTORY                     scrape new url or</span>
+<span class="go">                                                the last url entered</span>
+<span class="go">  -c 70, --cutoff 70                            cutoff percentage</span>
+<span class="go">                                                when excluding</span>
+<span class="go">                                                torrents by word</span>
+<span class="go">                                                similarity</span>
+<span class="go">  -p INT or START-END, --page INT or START-END  scrape a single</span>
+<span class="go">                                                digit page number or</span>
+<span class="go">                                                a range e.g. 1-5</span>
+</pre></div>
+</div>
+<p>Quick start</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> <span class="c1"># download torrents from one page</span>
+<span class="gp">$</span> categorpy --url <span class="s2">&quot;https://www.exampleurl/s/page/1&quot;</span>
+
+<span class="gp">$</span> <span class="c1"># download torrents from alternative page with saved history</span>
+<span class="gp">$</span> categorpy --pages <span class="m">4</span>  <span class="c1"># url now equals     $ &quot;https://www.exampleurl/s/page/4&quot;</span>
+
+<span class="gp">$</span> <span class="c1"># download torrents from a range of of pages with cached history</span>
+<span class="gp">$</span> categorpy torrent --pages <span class="m">1</span>-10
+</pre></div>
+</div>
+<span class="target" id="module-categorpy.src.auth"></span><div class="section" id="auth">
+<h2>auth<a class="headerlink" href="#auth" title="Permalink to this headline">¶</a></h2>
+<p>Securely handle user authentication.</p>
+<dl class="py class">
+<dt id="categorpy.src.auth.Keyring">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.auth.</code><code class="sig-name descname">Keyring</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">servicename</span></em>, <em class="sig-param"><span class="n">username</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/auth.html#Keyring"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.auth.Keyring" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Authorization object consisting of methods utilizing <code class="docutils literal notranslate"><span class="pre">getpass</span></code>
+and <code class="docutils literal notranslate"><span class="pre">keyring</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>servicename</strong> – Name for the user’s keyring.</p></li>
+<li><p><strong>username</strong> – User’s username.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="categorpy.src.auth.Keyring.get_password">
+<code class="sig-name descname">get_password</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/auth.html#Keyring.get_password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.auth.Keyring.get_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get stored password from system keyring. If one cannot be
+retrieved then the keyring has not been unlocked - this will
+usually be done automatically on a Linux system when running the
+GUI. It is most likely then that this session is being run
+through SSH. Notify the user that they will need to enter the
+password, even if one is already stored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.auth.Keyring.add_password">
+<code class="sig-name descname">add_password</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/auth.html#Keyring.add_password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.auth.Keyring.add_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prompt user for their password and save to instance
+variable.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.auth.Keyring.save_password">
+<code class="sig-name descname">save_password</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/auth.html#Keyring.save_password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.auth.Keyring.save_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the user’s password to their keyring. Switch instance
+variable <code class="docutils literal notranslate"><span class="pre">saved</span></code> from False to True to indicate the user has
+already been prompted to save their password.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.auth.prior_auth">
+<code class="sig-prename descclassname">categorpy.src.auth.</code><code class="sig-name descname">prior_auth</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">entered</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/auth.html#prior_auth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.auth.prior_auth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start tally of incorrect login attempts and log these as info to
+the <code class="docutils literal notranslate"><span class="pre">info.log</span></code> file. On the 3rd attempt log this to the
+<code class="docutils literal notranslate"><span class="pre">error.log</span></code> file. Announce that the <code class="docutils literal notranslate"><span class="pre">transmission-daemon</span></code>
+settings.json file may need updating if user does not know their
+password.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>entered</strong> – Number of times an incorrect password has been
+entered.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<span class="target" id="module-categorpy.src.client"></span><div class="section" id="client">
+<h2>client<a class="headerlink" href="#client" title="Permalink to this headline">¶</a></h2>
+<p>All things <code class="docutils literal notranslate"><span class="pre">transmission-rpc</span></code>.</p>
+<dl class="py function">
+<dt id="categorpy.src.client.get_client">
+<code class="sig-prename descclassname">categorpy.src.client.</code><code class="sig-name descname">get_client</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keyring</span></em>, <em class="sig-param"><span class="n">settings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/client.html#get_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.client.get_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempt to instantiate the <code class="docutils literal notranslate"><span class="pre">transmission_rpc.Client</span></code> class or
+log an error and explain the nature of the fault to the user before
+exiting with a non-zero exit code.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>keyring</strong> – Instantiated <code class="docutils literal notranslate"><span class="pre">Keyring</span></code> object to store and
+retrieve passwords.</p></li>
+<li><p><strong>settings</strong> – Dictionary object containing
+<code class="docutils literal notranslate"><span class="pre">transmission-daemon</span></code> settings from
+settings.json.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Instantiated <code class="docutils literal notranslate"><span class="pre">transmission_rpc.Client</span></code> class.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.client.load_client">
+<code class="sig-prename descclassname">categorpy.src.client.</code><code class="sig-name descname">load_client</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">magnets</span></em>, <em class="sig-param"><span class="n">unmatched</span></em>, <em class="sig-param"><span class="n">keyring</span></em>, <em class="sig-param"><span class="n">settings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/client.html#load_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.client.load_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare magnet files parsed from bencode text into plaintext
+against existing files on the user’s system. If the
+<code class="docutils literal notranslate"><span class="pre">matched_magnets</span></code> list has been populated announce to the user the
+files which have begun downloading. Announce to user if no new files
+can be downloaded from the scrape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>magnets</strong> – List of magnet contents (not paths).</p></li>
+<li><p><strong>unmatched</strong> – List of torrents that have been scraped and
+are not owned (in plaintext).</p></li>
+<li><p><strong>keyring</strong> – Instantiated <code class="docutils literal notranslate"><span class="pre">Keyring</span></code> object to store and
+retrieve passwords.</p></li>
+<li><p><strong>settings</strong> – Dictionary object containing
+<code class="docutils literal notranslate"><span class="pre">transmission-daemon</span></code> settings from
+settings.json.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Info summary for what has happened whilst
+running <code class="docutils literal notranslate"><span class="pre">transmission-daemon</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.client.transmission">
+<code class="sig-prename descclassname">categorpy.src.client.</code><code class="sig-name descname">transmission</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">args</span></em>, <em class="sig-param"><span class="n">find</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/client.html#transmission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.client.transmission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take the URL, selected page numbers, iterated file matches and
+<code class="docutils literal notranslate"><span class="pre">transmission-daemon</span></code> settings.json object and iterate over the
+page-range and download torrents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – Instantiated <code class="docutils literal notranslate"><span class="pre">argparse.Namespace</span></code> object for
+commandline arguments.</p></li>
+<li><p><strong>find</strong> – Instantiated <code class="docutils literal notranslate"><span class="pre">find.Find</span></code> object containing
+found non-matching or non-blacklisted torrents.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<span class="target" id="module-categorpy.src.find"></span><div class="section" id="find">
+<h2>find<a class="headerlink" href="#find" title="Permalink to this headline">¶</a></h2>
+<p>Find, match and reject.</p>
+<dl class="py class">
+<dt id="categorpy.src.find.Ratio">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.find.</code><code class="sig-name descname">Ratio</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">string1</span></em>, <em class="sig-param"><span class="n">string2</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Ratio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Work out the ratio of matching words to pass the cutoff.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>string1</strong> – The main string to test against.</p></li>
+<li><p><strong>string2</strong> – The string to match the ratio against <code class="docutils literal notranslate"><span class="pre">string1</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt id="categorpy.src.find.Ratio.exclude">
+<code class="sig-name descname">exclude</code><em class="property"> = ['and']</em><a class="headerlink" href="#categorpy.src.find.Ratio.exclude" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.find.Ratio.count_obj">
+<code class="sig-name descname">count_obj</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Ratio.count_obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Ratio.count_obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get ca key-value pair for a word and for the word itself and
+the number of occurrences of it within a string. If there are
+too many reoccurrences of a word it can inflate the ratio for a
+similar word.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The dictionary object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.find.Ratio.length_of_match">
+<em class="property">static </em><code class="sig-name descname">length_of_match</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">word_count</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Ratio.length_of_match"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Ratio.length_of_match" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the length (in letters) of a word and its single or
+multiple occurrences.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>word_count</strong> – Dictionary object containing the word as the
+key and the occurrences of it as the value.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An integer value for the length of the word
+and its variable occurrences in terms of the
+the number of letters only.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.find.Ratio.work_percentage">
+<code class="sig-name descname">work_percentage</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">match_len</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Ratio.work_percentage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Ratio.work_percentage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the final number of the length of the length of the
+string. Get the length of the string containing it. Work out the
+percentage that this one word occupies within the string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>match_len</strong> – The one word analyzed within the string.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An integer value for the percentage of the
+string the word takes up.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.find.Ratio.word_ratio">
+<code class="sig-name descname">word_ratio</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Ratio.word_ratio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Ratio.word_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the ratio of substrings within the two strings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An integer for the percentage.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.find.Ratio.get_ratio">
+<code class="sig-name descname">get_ratio</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Ratio.get_ratio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Ratio.get_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the final number of the ratio of matches between the
+two strings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An integer value for the ratio.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="categorpy.src.find.Find">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.find.</code><code class="sig-name descname">Find</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cutoff</span><span class="o">=</span><span class="default_value">70</span></em>, <em class="sig-param"><span class="n">globs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">types</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Find"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Find" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Find files by words or by globs - not fuzziness.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cutoff</strong> – Percentage threshold for equality. If over 7 words
+in 10 are the same (by default) then exclude file
+from being loaded.</p></li>
+<li><p><strong>globs</strong> – List of <code class="docutils literal notranslate"><span class="pre">types</span></code> that will not be tested for word
+similarity but for glob patterns.</p></li>
+<li><p><strong>types</strong> – Lists of files to test against found magnets for
+equality.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt id="categorpy.src.find.Find.logger">
+<code class="sig-name descname">logger</code><em class="property"> = &lt;Logger categorpy (WARNING)&gt;</em><a class="headerlink" href="#categorpy.src.find.Find.logger" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="categorpy.src.find.Find.errlogger">
+<code class="sig-name descname">errlogger</code><em class="property"> = &lt;Logger error (WARNING)&gt;</em><a class="headerlink" href="#categorpy.src.find.Find.errlogger" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.find.Find.match_ratio">
+<code class="sig-name descname">match_ratio</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">magnet</span></em>, <em class="sig-param"><span class="n">exclude</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Find.match_ratio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Find.match_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Boolean for match or no match.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>magnet</strong> – The string were filtering against.</p></li>
+<li><p><strong>exclude</strong> – The owned or blacklisted object we are testing
+against.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Is the ratio above the cutoff? True or False.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.find.Find.match_globs">
+<em class="property">classmethod </em><code class="sig-name descname">match_globs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">magnet</span></em>, <em class="sig-param"><span class="n">exclude</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Find.match_globs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Find.match_globs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Append files matching globs which are supported in certain
+data-files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>magnet</strong> – Match the globs against the magnet-files to
+filter out the unwanted magnets.</p></li>
+<li><p><strong>exclude</strong> – String that we do not want to include when adding
+torrents to <code class="docutils literal notranslate"><span class="pre">transmission-rpc</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.find.Find.iterate_owned">
+<code class="sig-name descname">iterate_owned</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">magnet</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Find.iterate_owned"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Find.iterate_owned" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loop through the owned files against the magnet link files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>magnet</strong> – The decoded magnet data.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.find.Find.display_tally">
+<code class="sig-name descname">display_tally</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Find.display_tally"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Find.display_tally" title="Permalink to this definition">¶</a></dt>
+<dd><p>Display a live tally of where the process is for the user.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.find.Find.iterate">
+<code class="sig-name descname">iterate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">magnets</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#Find.iterate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.Find.iterate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate through the owned, blacklisted and magnet files and
+display what is happening to the user. Log occurrences to info
+logfile. Catch stacktrace from ValueError if there is nothing to
+retrieve and simply inform the user that nothing was found.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>magnets</strong> – The scraped torrent data.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.find.instantiate_find">
+<code class="sig-prename descclassname">categorpy.src.find.</code><code class="sig-name descname">instantiate_find</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cutoff</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#instantiate_find"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.instantiate_find" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loop over page numbers entered for URL. Instantiate <code class="docutils literal notranslate"><span class="pre">Find</span></code>
+class with all the lists to match against. Load up <code class="docutils literal notranslate"><span class="pre">transmission</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cutoff</strong> – The amount of similar words that are allowed in.
+By default the cutoff is 70 (%), as in anything
+higher will mean a matching string.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Instantiated <code class="docutils literal notranslate"><span class="pre">find.Find</span></code> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.find.index_path">
+<code class="sig-prename descclassname">categorpy.src.find.</code><code class="sig-name descname">index_path</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">paths</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/find.html#index_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.find.index_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>get list of all system files with the wildcard glob pattern to
+<code class="docutils literal notranslate"><span class="pre">pathlib.Path</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>paths</strong> – List of paths that the user has configured to
+analyze for files.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of indexed file basenames (not their full
+path).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<span class="target" id="module-categorpy.src.locate"></span><div class="section" id="locate">
+<h2>locate<a class="headerlink" href="#locate" title="Permalink to this headline">¶</a></h2>
+<p>Define environment for navigating system.</p>
+<dl class="py class">
+<dt id="categorpy.src.locate.AppDirs">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.locate.</code><code class="sig-name descname">AppDirs</code><a class="reference internal" href="_modules/categorpy/src/locate.html#AppDirs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.locate.AppDirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">appdirs.AppDirs</span></code></p>
+<p>Application directories for package inheriting <code class="docutils literal notranslate"><span class="pre">AppDirs</span></code> from
+module <code class="docutils literal notranslate"><span class="pre">appdirs</span></code>.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="categorpy.src.locate.AppFiles">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.locate.</code><code class="sig-name descname">AppFiles</code><a class="reference internal" href="_modules/categorpy/src/locate.html#AppFiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.locate.AppFiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#categorpy.src.locate.AppDirs" title="categorpy.src.locate.AppDirs"><code class="xref py py-class docutils literal notranslate"><span class="pre">categorpy.src.locate.AppDirs</span></code></a></p>
+<p>Application file paths inheriting <code class="docutils literal notranslate"><span class="pre">AppDirs</span></code> for directory
+paths.</p>
+</dd></dl>
+
+</div>
+<span class="target" id="module-categorpy.src.log"></span><div class="section" id="log">
+<h2>log<a class="headerlink" href="#log" title="Permalink to this headline">¶</a></h2>
+<p>Logging functions and classes.</p>
+<dl class="py function">
+<dt id="categorpy.src.log.make_logger">
+<code class="sig-prename descclassname">categorpy.src.log.</code><code class="sig-name descname">make_logger</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">debug</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/log.html#make_logger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.log.make_logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate the global logging object containing several
+combined characteristics. Create logging dir if one doesn’t exist
+already. Ensure all loggers contain the format “/$logdir/$logname”.
+Ensure all loggers either display just the message or date-time,
+loglevel, message. Ensure all loggers are configured to handle
+rotating logs. Do not print logs to stdout or stderr.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the logger for <code class="docutils literal notranslate"><span class="pre">logging.GetLogger</span></code></p></li>
+<li><p><strong>debug</strong> – Debug mode: True or False</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.log.initialize_loggers">
+<code class="sig-prename descclassname">categorpy.src.log.</code><code class="sig-name descname">initialize_loggers</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">debug</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/log.html#initialize_loggers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.log.initialize_loggers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the loggers that can be retrieved with
+logging.getLogger(&lt;name&gt;)``.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>debug</strong> – Log debug messages: True or False.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.log.get_logger">
+<code class="sig-prename descclassname">categorpy.src.log.</code><code class="sig-name descname">get_logger</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'categorpy'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/log.html#get_logger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.log.get_logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get logger with default being the appname, the other logger and
+logfile will generally be <code class="docutils literal notranslate"><span class="pre">error</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – The name of the already created logger.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">logging.Logger</span></code> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt id="categorpy.src.log.StreamLogger">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.log.</code><code class="sig-name descname">StreamLogger</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'categorpy'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/log.html#StreamLogger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.log.StreamLogger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Run as a context class using <code class="docutils literal notranslate"><span class="pre">with</span></code> to capture output
+stream.</p>
+<dl class="py method">
+<dt id="categorpy.src.log.StreamLogger.write">
+<code class="sig-name descname">write</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/log.html#StreamLogger.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.log.StreamLogger.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will be called when used as a contextlib action.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>msg</strong> – The message to log - stdout stream.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.log.StreamLogger.flush">
+<code class="sig-name descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/log.html#StreamLogger.flush"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.log.StreamLogger.flush" title="Permalink to this definition">¶</a></dt>
+<dd><p>For when we are capturing stdout or stderr.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="categorpy.src.log.Time">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.log.</code><code class="sig-name descname">Time</code><a class="reference internal" href="_modules/categorpy/src/log.html#Time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.log.Time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Add a timer for logging processes.</p>
+<dl class="py method">
+<dt id="categorpy.src.log.Time.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/log.html#Time.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.log.Time.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the clock</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.log.Time.record">
+<code class="sig-name descname">record</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/log.html#Time.record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.log.Time.record" title="Permalink to this definition">¶</a></dt>
+<dd><p>Record the elapsed time since instantiated or since reset has
+been called.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Tuple containing hours, minutes and seconds</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.log.log_time">
+<code class="sig-prename descclassname">categorpy.src.log.</code><code class="sig-name descname">log_time</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">proc_msg</span></em>, <em class="sig-param"><span class="n">function</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/log.html#log_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.log.log_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a method and and log the process. Announce the message and
+time the length it took to complete the function. If the function
+returns a value return that too.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>proc_msg</strong> – The announcement to communicate the beginning
+of the process.</p></li>
+<li><p><strong>function</strong> – The function to be called.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Key args</dt>
+<dd class="field-even"><p>Any args the function may need - None is OK.</p>
+</dd>
+<dt class="field-odd">Key kwargs</dt>
+<dd class="field-odd"><p>Any kwargs the function may need - None is OK.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Anything returned from the function.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<span class="target" id="module-categorpy.src.main"></span><div class="section" id="main">
+<h2>main<a class="headerlink" href="#main" title="Permalink to this headline">¶</a></h2>
+<p>The entire package’s main</p>
+<dl class="py class">
+<dt id="categorpy.src.main.Parser">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.main.</code><code class="sig-name descname">Parser</code><a class="reference internal" href="_modules/categorpy/src/main.html#Parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.main.Parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code></p>
+<p>Parse the path selected for downloaded files, the torrent-dir
+to check for existing downloads and the url to scrape. Collect the
+number argument for custom page numbers and ranges. Determine
+whether running in <cite>inspect</cite> mode or whether downloads will be
+initialized.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.main.parse_url">
+<code class="sig-prename descclassname">categorpy.src.main.</code><code class="sig-name descname">parse_url</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">argparser</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/main.html#parse_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.main.parse_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the history file for the last entry added to the json
+object. If no history has been recorded notify the user and print
+the argparse help.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>argparser</strong> – <code class="docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code> <code class="docutils literal notranslate"><span class="pre">Namespace</span></code> which
+contains the <code class="docutils literal notranslate"><span class="pre">url</span></code> parameter and the
+<code class="docutils literal notranslate"><span class="pre">print_help</span></code> method.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>URL to scrape for torrents.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.main.get_namespace">
+<code class="sig-prename descclassname">categorpy.src.main.</code><code class="sig-name descname">get_namespace</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">argparser</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/main.html#get_namespace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.main.get_namespace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Complete the <code class="docutils literal notranslate"><span class="pre">argparse</span></code> <code class="docutils literal notranslate"><span class="pre">Namespace</span></code> object by populating the
+<code class="docutils literal notranslate"><span class="pre">url</span></code> object if one needs to be populated and one can be populated
+(else raise error) then return the <code class="docutils literal notranslate"><span class="pre">Namespace</span></code> object from
+<code class="docutils literal notranslate"><span class="pre">argparse</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>argparser</strong> – Instantiated <code class="docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code> object
+for commandline arguments.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Instantiated <code class="docutils literal notranslate"><span class="pre">argparse.Namespace</span></code> object for
+commandline arguments.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.main.main">
+<code class="sig-prename descclassname">categorpy.src.main.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/main.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.main.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Begin by parsing commandline arguments and returning
+<code class="docutils literal notranslate"><span class="pre">parser.Parser</span></code> object. Get the <code class="docutils literal notranslate"><span class="pre">INFO</span></code> or <code class="docutils literal notranslate"><span class="pre">DEBUG</span></code> loglevel
+<code class="docutils literal notranslate"><span class="pre">logger</span></code>, depending on the commandline arguments passed. Get the
+instantiated <code class="docutils literal notranslate"><span class="pre">find.Find</span></code> object containing the parsed blacklist
+and paths files as well as the indexed paths. Handle
+<code class="docutils literal notranslate"><span class="pre">KeyboardInterrupt</span></code> and <code class="docutils literal notranslate"><span class="pre">EOFError</span></code> for the main processes
+cleanly. Allow for <code class="docutils literal notranslate"><span class="pre">KeyboardInterrupt</span></code> and <code class="docutils literal notranslate"><span class="pre">EOFError</span></code>
+stack-trace to be logged if running with
+<code class="docutils literal notranslate"><span class="pre">argparser.args.debug</span> <span class="pre">is</span> <span class="pre">True</span></code>.</p>
+</dd></dl>
+
+</div>
+<span class="target" id="module-categorpy.src.normalize"></span><div class="section" id="normalize">
+<h2>normalize<a class="headerlink" href="#normalize" title="Permalink to this headline">¶</a></h2>
+<p>Use regular expressions and string manipulation methods to turn
+hard-to-read content into human-readable content which will make it
+easier to draw comparisons between strings.</p>
+<dl class="py class">
+<dt id="categorpy.src.normalize.File">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.normalize.</code><code class="sig-name descname">File</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">string</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#File"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.File" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Format strings to a uniform syntax</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>string</strong> – String to manipulate and use.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="categorpy.src.normalize.File.normalize_whitespace">
+<code class="sig-name descname">normalize_whitespace</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#File.normalize_whitespace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.File.normalize_whitespace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert all instances of dots and underscores to separate
+words as whitespace.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Human readable sentence separated by whitespace.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.File.normalize_non_alpha_numeric">
+<code class="sig-name descname">normalize_non_alpha_numeric</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#File.normalize_non_alpha_numeric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.File.normalize_non_alpha_numeric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove such characters as pluses and minuses etc. and replace
+with whitespace.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.File.set_lowercase">
+<code class="sig-name descname">set_lowercase</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#File.set_lowercase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.File.set_lowercase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove all case variances.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.File.deduplicate_whitespace">
+<code class="sig-name descname">deduplicate_whitespace</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#File.deduplicate_whitespace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.File.deduplicate_whitespace" title="Permalink to this definition">¶</a></dt>
+<dd><p>If several characters have been replaced with whitespace then
+multiple spaces in the sentence can throw off a comparison
+search.</p>
+<p>Make sure multiple whitespace occurrences are replaced with a
+single space.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.File.normalize">
+<code class="sig-name descname">normalize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#File.normalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.File.normalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run all the regexes and string manipulations to normalize a
+string.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="categorpy.src.normalize.Magnet">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.normalize.</code><code class="sig-name descname">Magnet</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">magnet</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Magnet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Magnet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Get the name of a magnet-link file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>magnet</strong> – Magnet file’s contents parsed with <code class="docutils literal notranslate"><span class="pre">bencode.py</span></code>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="categorpy.src.normalize.Magnet.remove_equals">
+<code class="sig-name descname">remove_equals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Magnet.remove_equals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Magnet.remove_equals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Separate the words by whitespace instead of an equals
+sign.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.Magnet.remove_last_delim">
+<code class="sig-name descname">remove_last_delim</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Magnet.remove_last_delim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Magnet.remove_last_delim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the last delimiter from the magnet’s contents.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.Magnet.remove_underscore">
+<code class="sig-name descname">remove_underscore</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Magnet.remove_underscore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Magnet.remove_underscore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Separate the words by whitespace instead of an underscore.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.Magnet.remove_quotes">
+<code class="sig-name descname">remove_quotes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Magnet.remove_quotes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Magnet.remove_quotes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the quotes from a magnet links content.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.Magnet.remove_tuple">
+<code class="sig-name descname">remove_tuple</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Magnet.remove_tuple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Magnet.remove_tuple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the tuple from a magnet-link with regular
+expressions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.Magnet.normalize">
+<code class="sig-name descname">normalize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Magnet.normalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Magnet.normalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combine all methods to manipulate and change the magnet
+content.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="categorpy.src.normalize.Decoder">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.normalize.</code><code class="sig-name descname">Decoder</code><a class="reference internal" href="_modules/categorpy/src/normalize.html#Decoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Decoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Analyze a dictionary object recursively to decode all nested
+values containing <code class="docutils literal notranslate"><span class="pre">bytes</span></code>.</p>
+<dl class="py method">
+<dt id="categorpy.src.normalize.Decoder.decode_key">
+<em class="property">classmethod </em><code class="sig-name descname">decode_key</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Decoder.decode_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Decoder.decode_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>If <code class="docutils literal notranslate"><span class="pre">key</span></code> is type <code class="docutils literal notranslate"><span class="pre">bytes</span></code> return decoded <code class="docutils literal notranslate"><span class="pre">str</span></code> object,
+if not then nothing needs to be done - return the original
+object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>key</strong> – Dictionary key.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Return a decoded <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.Decoder.decode_val">
+<em class="property">classmethod </em><code class="sig-name descname">decode_val</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">val</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Decoder.decode_val"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Decoder.decode_val" title="Permalink to this definition">¶</a></dt>
+<dd><p>A value belonging to a key-value pair can be any object so
+if the object is not bytes begin the iteration again to iterate
+and decode over any <code class="docutils literal notranslate"><span class="pre">list</span></code>, <code class="docutils literal notranslate"><span class="pre">dict</span></code> or <code class="docutils literal notranslate"><span class="pre">bytes</span></code> object
+further down.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>val</strong> – <code class="docutils literal notranslate"><span class="pre">str</span></code>, <code class="docutils literal notranslate"><span class="pre">list</span></code>, <code class="docutils literal notranslate"><span class="pre">dict</span></code> or <code class="docutils literal notranslate"><span class="pre">bytes</span></code>.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">list</span></code>, <code class="docutils literal notranslate"><span class="pre">dict</span></code> or <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.Decoder.decode_dict">
+<em class="property">classmethod </em><code class="sig-name descname">decode_dict</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Decoder.decode_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Decoder.decode_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pass a <code class="docutils literal notranslate"><span class="pre">dict</span></code> object to recursively analyze for values
+which are the type <code class="docutils literal notranslate"><span class="pre">bytes</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>_object</strong> – The <code class="docutils literal notranslate"><span class="pre">dict</span></code> object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Analyzed and altered <code class="docutils literal notranslate"><span class="pre">dict</span></code> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.Decoder.decode_list">
+<em class="property">classmethod </em><code class="sig-name descname">decode_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Decoder.decode_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Decoder.decode_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pass a <code class="docutils literal notranslate"><span class="pre">list</span></code> object to recursively analyze for values
+which are the type <code class="docutils literal notranslate"><span class="pre">bytes</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>_object</strong> – The <code class="docutils literal notranslate"><span class="pre">list</span></code> object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Analyzed and altered <code class="docutils literal notranslate"><span class="pre">list</span></code> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.normalize.Decoder.decode">
+<em class="property">classmethod </em><code class="sig-name descname">decode</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/normalize.html#Decoder.decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.normalize.Decoder.decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recursively go through a <code class="docutils literal notranslate"><span class="pre">list</span></code> or <code class="docutils literal notranslate"><span class="pre">dict</span></code> object -
+ignoring the <code class="docutils literal notranslate"><span class="pre">UnicodeDecodeError</span></code> that may occur.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>_object</strong> – The <code class="docutils literal notranslate"><span class="pre">list</span></code> or <code class="docutils literal notranslate"><span class="pre">dict</span></code> object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Analyzed and altered <code class="docutils literal notranslate"><span class="pre">list</span></code> or <code class="docutils literal notranslate"><span class="pre">dict</span></code>
+object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<span class="target" id="module-categorpy.src.textio"></span><div class="section" id="textio">
+<h2>textio<a class="headerlink" href="#textio" title="Permalink to this headline">¶</a></h2>
+<p>Write and read app data.</p>
+<dl class="py class">
+<dt id="categorpy.src.textio.ListIO">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.textio.</code><code class="sig-name descname">ListIO</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#ListIO"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.ListIO" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Object to represent file in <code class="docutils literal notranslate"><span class="pre">list</span></code> form through the process
+while keeping the file in sync when changes are made to instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>file</strong> – File to read / write to.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="categorpy.src.textio.ListIO.clear">
+<code class="sig-name descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#ListIO.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.ListIO.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run this before <code class="docutils literal notranslate"><span class="pre">self.write</span></code> to start the file over.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.textio.ListIO.read">
+<code class="sig-name descname">read</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#ListIO.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.ListIO.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read from file and add list items to <code class="docutils literal notranslate"><span class="pre">self.array</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.textio.ListIO.write">
+<code class="sig-name descname">write</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">lines</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#ListIO.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.ListIO.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write content to a file, replacing all previous content that
+might have been there. Appending to file is the default
+behaviour.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>lines</strong> – The list to write into the file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="categorpy.src.textio.JsonIO">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.textio.</code><code class="sig-name descname">JsonIO</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#JsonIO"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.JsonIO" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Object to represent file in <code class="docutils literal notranslate"><span class="pre">json</span></code> form through the process
+while keeping the file in sync when changes are made to instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>file</strong> – File to read / write to.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="categorpy.src.textio.JsonIO.clear">
+<code class="sig-name descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#JsonIO.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.JsonIO.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run this before <code class="docutils literal notranslate"><span class="pre">self.write</span></code> to start the file over.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.textio.JsonIO.read">
+<code class="sig-name descname">read</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#JsonIO.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.JsonIO.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>If the <code class="docutils literal notranslate"><span class="pre">self.file</span></code> path exists then read its content in the
+<code class="docutils literal notranslate"><span class="pre">self.object</span></code> instance attribute.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.textio.JsonIO.write">
+<code class="sig-name descname">write</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#JsonIO.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.JsonIO.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write <code class="docutils literal notranslate"><span class="pre">dict</span></code> object to file as <code class="docutils literal notranslate"><span class="pre">json</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>_object</strong> – The <code class="docutils literal notranslate"><span class="pre">dict</span></code> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.textio.JsonIO.append_array">
+<code class="sig-name descname">append_array</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#JsonIO.append_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.JsonIO.append_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a tuple argument into a nested dictionary and write to
+a json file with the first index being the key and the second
+the value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Key array</dt>
+<dd class="field-odd"><p>Name of the array to add items to.</p>
+</dd>
+<dt class="field-even">Variables</dt>
+<dd class="field-even"><p><strong>value</strong> – string, object, array etc to append to array.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="categorpy.src.textio.IniIO">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.textio.</code><code class="sig-name descname">IniIO</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#IniIO"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.IniIO" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Object to represent file in <code class="docutils literal notranslate"><span class="pre">ini</span></code> form through the process
+while keeping the file in sync when changes are made to instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>file</strong> – File to read / write to.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="categorpy.src.textio.IniIO.initialize_default">
+<code class="sig-name descname">initialize_default</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">default</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#IniIO.initialize_default"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.IniIO.initialize_default" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a new <code class="docutils literal notranslate"><span class="pre">config.ini</span></code> file with default settings.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.textio.IniIO.initialize_existing">
+<code class="sig-name descname">initialize_existing</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#IniIO.initialize_existing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.IniIO.initialize_existing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load an existing <code class="docutils literal notranslate"><span class="pre">config.ini</span></code> object into buffer as a
+dictionary object.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="categorpy.src.textio.BencodeIO">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.textio.</code><code class="sig-name descname">BencodeIO</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">torrent_dir</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#BencodeIO"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.BencodeIO" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Parse downloaded data for human readable categorisation.</p>
+<dl class="py attribute">
+<dt id="categorpy.src.textio.BencodeIO.errlogger">
+<code class="sig-name descname">errlogger</code><em class="property"> = &lt;Logger error (WARNING)&gt;</em><a class="headerlink" href="#categorpy.src.textio.BencodeIO.errlogger" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.textio.BencodeIO.parse_bencode_object">
+<em class="property">classmethod </em><code class="sig-name descname">parse_bencode_object</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bencode</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#BencodeIO.parse_bencode_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.BencodeIO.parse_bencode_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>take bencode content (not path) and convert it to human
+readable text.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>bencode</strong> – Bytes read from torrent file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.textio.BencodeIO.parse_torrents">
+<code class="sig-name descname">parse_torrents</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#BencodeIO.parse_torrents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.BencodeIO.parse_torrents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call to get the readable content from the bencode and create
+a dictionary object of names and their corresponding magnets.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.textio.pygment_print">
+<code class="sig-prename descclassname">categorpy.src.textio.</code><code class="sig-name descname">pygment_print</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">string</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#pygment_print"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.pygment_print" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print with <code class="docutils literal notranslate"><span class="pre">pygments</span></code>. Read the string entered in method.
+Configure syntax highlighting for either shell or ini files and
+processes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>string</strong> – What is to be printed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.textio.record_hist">
+<code class="sig-prename descclassname">categorpy.src.textio.</code><code class="sig-name descname">record_hist</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">history</span></em>, <em class="sig-param"><span class="n">url</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#record_hist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.record_hist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add url search history to history cache file. Increment id from
+the last search. Add timestamp.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>history</strong> – History object instantiated from
+<code class="docutils literal notranslate"><span class="pre">categorpy.TextIO</span></code>.</p></li>
+<li><p><strong>url</strong> – Url search or retrieved from prior history
+- depending on whether an argument was passed to the
+commandline.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.textio.initialize_paths_file">
+<code class="sig-prename descclassname">categorpy.src.textio.</code><code class="sig-name descname">initialize_paths_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">paths_file</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#initialize_paths_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.initialize_paths_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make default file if it doesn’t exist and read the file for paths
+that the user wants to scan for existing files to filter out of
+download. Default path to scan is the user’s home directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>List of paths to scan for files.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="categorpy.src.textio.client_settings">
+<code class="sig-prename descclassname">categorpy.src.textio.</code><code class="sig-name descname">client_settings</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/textio.html#client_settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.textio.client_settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempt to read the settings.json file belonging to
+<code class="docutils literal notranslate"><span class="pre">transmission_daemon</span></code> and return it as a dictionary object parsed
+with the <code class="docutils literal notranslate"><span class="pre">json</span></code> module.</p>
+</dd></dl>
+
+</div>
+<span class="target" id="module-categorpy.src.web"></span><div class="section" id="parse">
+<h2>parse<a class="headerlink" href="#parse" title="Permalink to this headline">¶</a></h2>
+<p>Parse data files and magnet-links.</p>
+<dl class="py class">
+<dt id="categorpy.src.web.Scraper">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.web.</code><code class="sig-name descname">Scraper</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">header</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/web.html#Scraper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.web.Scraper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>this contains a method to scrape the web and a method to populate
+an object consisting of a named magnet key and raw magnet data
+value.</p>
+<dl class="py method">
+<dt id="categorpy.src.web.Scraper.process_request">
+<code class="sig-name descname">process_request</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">search</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/web.html#Scraper.process_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.web.Scraper.process_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Begin the webscraping here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>search</strong> – Search the web.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.web.Scraper.scrape">
+<code class="sig-name descname">scrape</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/web.html#Scraper.scrape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.web.Scraper.scrape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sense of the scraped content.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="categorpy.src.web.Pages">
+<em class="property">class </em><code class="sig-prename descclassname">categorpy.src.web.</code><code class="sig-name descname">Pages</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">url</span></em>, <em class="sig-param"><span class="n">pageno</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/web.html#Pages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.web.Pages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Parse the torrent page-numbers from their URLs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> – The URL the page numbers belong to.</p></li>
+<li><p><strong>pageno</strong> – A value if passed via the commandline otherwise it
+will be assigned later with
+<code class="docutils literal notranslate"><span class="pre">self.get_page_number</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="categorpy.src.web.Pages.check_for_pages">
+<code class="sig-name descname">check_for_pages</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/web.html#Pages.check_for_pages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.web.Pages.check_for_pages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check for the page schema of the URL.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.web.Pages.page_number">
+<code class="sig-name descname">page_number</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">page_number</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/web.html#Pages.page_number"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.web.Pages.page_number" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alter the URL to replace the current page number with the
+desired page-number.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>page_number</strong> – Alternative page number to the current
+URL’s.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.web.Pages.get_page_number">
+<code class="sig-name descname">get_page_number</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/web.html#Pages.get_page_number"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.web.Pages.get_page_number" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the page-number from the URL.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Page-number.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="categorpy.src.web.Pages.intervals">
+<code class="sig-name descname">intervals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/categorpy/src/web.html#Pages.intervals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#categorpy.src.web.Pages.intervals" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Split numbers for a range (if a range is given) otherwise
+nothing happens here and the single digit remains the same.
+Unpack tuple of low and high numbers - multiple runs for a start
+and stop, otherwise this will run only once with two instances
+of <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">categorpy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#auth">auth</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#client">client</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#find">find</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#locate">locate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#log">log</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#main">main</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#normalize">normalize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#textio">textio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#parse">parse</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="readme.html">README</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="readme.html" title="README"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Categorpy Docs"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Stephen Whitlock.
+    </div>
+  </body>
+</html>

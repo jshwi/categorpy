@@ -1,0 +1,181 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>categorpy.src.auth &#8212; categorpy 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/graphite.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.auth</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for categorpy.src.auth</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">auth</span>
+<span class="sd">====</span>
+
+<span class="sd">Securely handle user authentication.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">getpass</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">keyring</span>
+<span class="kn">import</span> <span class="nn">keyring.errors</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">log</span>
+
+
+<div class="viewcode-block" id="Keyring"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.auth.Keyring">[docs]</a><span class="k">class</span> <span class="nc">Keyring</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Authorization object consisting of methods utilizing ``getpass``</span>
+<span class="sd">    and ``keyring``.</span>
+
+<span class="sd">    :param servicename: Name for the user&#39;s keyring.</span>
+<span class="sd">    :param username:    User&#39;s username.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">servicename</span><span class="p">,</span> <span class="n">username</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">servicename</span> <span class="o">=</span> <span class="n">servicename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">username</span> <span class="o">=</span> <span class="n">username</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headless</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">saved</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entered</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_password</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Keyring.get_password"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.auth.Keyring.get_password">[docs]</a>    <span class="k">def</span> <span class="nf">get_password</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get stored password from system keyring. If one cannot be</span>
+<span class="sd">        retrieved then the keyring has not been unlocked - this will</span>
+<span class="sd">        usually be done automatically on a Linux system when running the</span>
+<span class="sd">        GUI. It is most likely then that this session is being run</span>
+<span class="sd">        through SSH. Notify the user that they will need to enter the</span>
+<span class="sd">        password, even if one is already stored.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="n">keyring</span><span class="o">.</span><span class="n">get_password</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">servicename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">keyring</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">KeyringLocked</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">errlogger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+            <span class="n">errlogger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">),</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">headless</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">saved</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">password</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Keyring.add_password"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.auth.Keyring.add_password">[docs]</a>    <span class="k">def</span> <span class="nf">add_password</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Prompt user for their password and save to instance</span>
+<span class="sd">        variable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">headless</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;Headless server detected:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;please enter your password as one cannot be saved or loaded</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="n">getpass</span><span class="o">.</span><span class="n">getpass</span><span class="p">(</span><span class="s2">&quot;Password: &quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entered</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="Keyring.save_password"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.auth.Keyring.save_password">[docs]</a>    <span class="k">def</span> <span class="nf">save_password</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add the user&#39;s password to their keyring. Switch instance</span>
+<span class="sd">        variable ``saved`` from False to True to indicate the user has</span>
+<span class="sd">        already been prompted to save their password.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">keyring</span><span class="o">.</span><span class="n">set_password</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">servicename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">password</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">saved</span> <span class="o">=</span> <span class="kc">True</span></div></div>
+
+
+<div class="viewcode-block" id="prior_auth"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.auth.prior_auth">[docs]</a><span class="k">def</span> <span class="nf">prior_auth</span><span class="p">(</span><span class="n">entered</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Start tally of incorrect login attempts and log these as info to</span>
+<span class="sd">    the ``info.log`` file. On the 3rd attempt log this to the</span>
+<span class="sd">    ``error.log`` file. Announce that the ``transmission-daemon``</span>
+<span class="sd">    settings.json file may need updating if user does not know their</span>
+<span class="sd">    password.</span>
+
+<span class="sd">    :param entered: Number of times an incorrect password has been</span>
+<span class="sd">                    entered.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
+    <span class="n">errlogger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+    <span class="n">tally</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">entered</span><span class="si">}</span><span class="s2"> incorrect password attempts&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">tally</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">entered</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="se">\u001b</span><span class="s2">[0;31;40mToo many incorrect password attempts</span><span class="se">\u001b</span><span class="s2">[0;0m</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;please update your password in `transmission-daemon&#39; &quot;</span>
+            <span class="s2">&quot;settings.json and try again&quot;</span><span class="p">,</span>
+            <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">errlogger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">tally</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">incorrect password: please try again&quot;</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../categorpy.html">categorpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">README</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.auth</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Stephen Whitlock.
+    </div>
+  </body>
+</html>

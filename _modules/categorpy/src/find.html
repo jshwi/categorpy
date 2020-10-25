@@ -1,0 +1,333 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>categorpy.src.find &#8212; categorpy 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/graphite.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.find</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for categorpy.src.find</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">find</span>
+<span class="sd">====</span>
+
+<span class="sd">Find, match and reject.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">fnmatch</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">locate</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">normalize</span><span class="p">,</span> <span class="n">textio</span>
+
+
+<div class="viewcode-block" id="Ratio"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Ratio">[docs]</a><span class="k">class</span> <span class="nc">Ratio</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Work out the ratio of matching words to pass the cutoff.</span>
+
+<span class="sd">    :param string1: The main string to test against.</span>
+<span class="sd">    :param string2: The string to match the ratio against ``string1``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exclude</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;and&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string1</span><span class="p">,</span> <span class="n">string2</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string1</span> <span class="o">=</span> <span class="n">normalize</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">string1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string2</span> <span class="o">=</span> <span class="n">normalize</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">string2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">int</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="Ratio.count_obj"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Ratio.count_obj">[docs]</a>    <span class="k">def</span> <span class="nf">count_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get ca key-value pair for a word and for the word itself and</span>
+<span class="sd">        the number of occurrences of it within a string. If there are</span>
+<span class="sd">        too many reoccurrences of a word it can inflate the ratio for a</span>
+<span class="sd">        similar word.</span>
+
+<span class="sd">        :return: The dictionary object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">w</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">string2</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">()</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">string1</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">w</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">Ratio</span><span class="o">.</span><span class="n">exclude</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="Ratio.length_of_match"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Ratio.length_of_match">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">length_of_match</span><span class="p">(</span><span class="n">word_count</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the length (in letters) of a word and its single or</span>
+<span class="sd">        multiple occurrences.</span>
+
+<span class="sd">        :param word_count:  Dictionary object containing the word as the</span>
+<span class="sd">                            key and the occurrences of it as the value.</span>
+<span class="sd">        :return:            An integer value for the length of the word</span>
+<span class="sd">                            and its variable occurrences in terms of the</span>
+<span class="sd">                            the number of letters only.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">word_count</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span></div>
+
+<div class="viewcode-block" id="Ratio.work_percentage"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Ratio.work_percentage">[docs]</a>    <span class="k">def</span> <span class="nf">work_percentage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">match_len</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the final number of the length of the length of the</span>
+<span class="sd">        string. Get the length of the string containing it. Work out the</span>
+<span class="sd">        percentage that this one word occupies within the string.</span>
+
+<span class="sd">        :param match_len:   The one word analyzed within the string.</span>
+<span class="sd">        :return:            An integer value for the percentage of the</span>
+<span class="sd">                            string the word takes up.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sum_</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">match_len</span><span class="p">)</span>
+            <span class="n">len_</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">string1</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">()))</span>
+            <span class="n">percent</span> <span class="o">=</span> <span class="n">sum_</span> <span class="o">/</span> <span class="n">len_</span>
+            <span class="k">return</span> <span class="n">percent</span>
+        <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="Ratio.word_ratio"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Ratio.word_ratio">[docs]</a>    <span class="k">def</span> <span class="nf">word_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the ratio of substrings within the two strings.</span>
+
+<span class="sd">        :return: An integer for the percentage.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">word_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">count_obj</span><span class="p">()</span>
+        <span class="n">match_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_of_match</span><span class="p">(</span><span class="n">word_count</span><span class="p">)</span>
+        <span class="n">percent_match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">work_percentage</span><span class="p">(</span><span class="n">match_len</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">int</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">percent_match</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Ratio.get_ratio"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Ratio.get_ratio">[docs]</a>    <span class="k">def</span> <span class="nf">get_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the final number of the ratio of matches between the</span>
+<span class="sd">        two strings.</span>
+
+<span class="sd">        :return: An integer value for the ratio.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string1</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string2</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">word_ratio</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="Find"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Find">[docs]</a><span class="k">class</span> <span class="nc">Find</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Find files by words or by globs - not fuzziness.</span>
+
+<span class="sd">    :param cutoff: Percentage threshold for equality. If over 7 words</span>
+<span class="sd">                    in 10 are the same (by default) then exclude file</span>
+<span class="sd">                    from being loaded.</span>
+<span class="sd">    :param globs:   List of ``types`` that will not be tested for word</span>
+<span class="sd">                    similarity but for glob patterns.</span>
+<span class="sd">    :param types:   Lists of files to test against found magnets for</span>
+<span class="sd">                    equality.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
+    <span class="n">errlogger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span> <span class="n">globs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">types</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span> <span class="o">=</span> <span class="n">cutoff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">globs</span> <span class="o">=</span> <span class="n">globs</span> <span class="k">if</span> <span class="n">globs</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">types</span> <span class="o">=</span> <span class="n">types</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">found</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rejected</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="Find.match_ratio"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Find.match_ratio">[docs]</a>    <span class="k">def</span> <span class="nf">match_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">magnet</span><span class="p">,</span> <span class="n">exclude</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Boolean for match or no match.</span>
+
+<span class="sd">        :param magnet:  The string were filtering against.</span>
+<span class="sd">        :param exclude: The owned or blacklisted object we are testing</span>
+<span class="sd">                        against.</span>
+<span class="sd">        :return:        Is the ratio above the cutoff? True or False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ratio</span> <span class="o">=</span> <span class="n">Ratio</span><span class="p">(</span><span class="n">magnet</span><span class="p">,</span> <span class="n">exclude</span><span class="p">)</span>
+        <span class="n">ratio</span><span class="o">.</span><span class="n">get_ratio</span><span class="p">()</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">ratio</span><span class="o">.</span><span class="n">int</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[RATIO] {</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">}&quot;</span><span class="p">,</span> <span class="n">magnet</span><span class="p">,</span> <span class="n">ratio</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">match</span></div>
+
+<div class="viewcode-block" id="Find.match_globs"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Find.match_globs">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">match_globs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">magnet</span><span class="p">,</span> <span class="n">exclude</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Append files matching globs which are supported in certain</span>
+<span class="sd">        data-files.</span>
+
+<span class="sd">        :param magnet:  Match the globs against the magnet-files to</span>
+<span class="sd">                        filter out the unwanted magnets.</span>
+<span class="sd">        :param exclude: String that we do not want to include when adding</span>
+<span class="sd">                        torrents to ``transmission-rpc``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">exclude</span> <span class="o">=</span> <span class="n">exclude</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">magnet</span><span class="o">.</span><span class="n">casefold</span><span class="p">(),</span> <span class="n">exclude</span><span class="o">.</span><span class="n">casefold</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[PATTERN] {</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">}&quot;</span><span class="p">,</span> <span class="n">magnet</span><span class="p">,</span> <span class="n">exclude</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">match</span>
+        <span class="k">except</span> <span class="n">re</span><span class="o">.</span><span class="n">error</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">errlogger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">),</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="nf">_is_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">magnet</span><span class="p">,</span> <span class="n">exclude</span><span class="p">):</span>
+        <span class="c1"># either match by ratio of matching words of match by glob</span>
+        <span class="c1"># patterns</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">globs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_globs</span><span class="p">(</span><span class="n">magnet</span><span class="p">,</span> <span class="n">exclude</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_ratio</span><span class="p">(</span><span class="n">magnet</span><span class="p">,</span> <span class="n">exclude</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Find.iterate_owned"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Find.iterate_owned">[docs]</a>    <span class="k">def</span> <span class="nf">iterate_owned</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">magnet</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loop through the owned files against the magnet link files.</span>
+
+<span class="sd">        :param magnet: The decoded magnet data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">exclude</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_match</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">magnet</span><span class="p">,</span> <span class="n">exclude</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rejected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">magnet</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">found</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">magnet</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;found&quot;</span></div>
+
+<div class="viewcode-block" id="Find.display_tally"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Find.display_tally">[docs]</a>    <span class="k">def</span> <span class="nf">display_tally</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Display a live tally of where the process is for the user.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;found: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">found</span><span class="p">)</span><span class="si">}</span><span class="s2">    rejected: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rejected</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">end</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Find.iterate"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.Find.iterate">[docs]</a>    <span class="k">def</span> <span class="nf">iterate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">magnets</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Iterate through the owned, blacklisted and magnet files and</span>
+<span class="sd">        display what is happening to the user. Log occurrences to info</span>
+<span class="sd">        logfile. Catch stacktrace from ValueError if there is nothing to</span>
+<span class="sd">        retrieve and simply inform the user that nothing was found.</span>
+
+<span class="sd">        :param magnets: The scraped torrent data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">found</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rejected</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">magnet</span> <span class="ow">in</span> <span class="n">magnets</span><span class="p">:</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterate_owned</span><span class="p">(</span><span class="n">magnet</span><span class="p">)</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="n">status</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;[</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">magnet</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">display_tally</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">errlogger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">),</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Search returned no results...&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="instantiate_find"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.instantiate_find">[docs]</a><span class="k">def</span> <span class="nf">instantiate_find</span><span class="p">(</span><span class="n">cutoff</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Loop over page numbers entered for URL. Instantiate ``Find``</span>
+<span class="sd">    class with all the lists to match against. Load up ``transmission``.</span>
+
+<span class="sd">    :param cutoff:  The amount of similar words that are allowed in.</span>
+<span class="sd">                    By default the cutoff is 70 (%), as in anything</span>
+<span class="sd">                    higher will mean a matching string.</span>
+<span class="sd">    :return:        Instantiated ``find.Find`` object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">blacklistio</span> <span class="o">=</span> <span class="n">textio</span><span class="o">.</span><span class="n">ListIO</span><span class="p">(</span><span class="n">locate</span><span class="o">.</span><span class="n">APP</span><span class="o">.</span><span class="n">blacklist</span><span class="p">)</span>
+    <span class="n">downloading</span> <span class="o">=</span> <span class="n">textio</span><span class="o">.</span><span class="n">BencodeIO</span><span class="p">(</span><span class="n">locate</span><span class="o">.</span><span class="n">APP</span><span class="o">.</span><span class="n">torrents</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Scanning local torrents&quot;</span><span class="p">)</span>
+
+    <span class="n">downloading</span><span class="o">.</span><span class="n">parse_torrents</span><span class="p">()</span>
+
+    <span class="n">paths</span> <span class="o">=</span> <span class="n">textio</span><span class="o">.</span><span class="n">initialize_paths_file</span><span class="p">(</span><span class="n">locate</span><span class="o">.</span><span class="n">APP</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span>
+    <span class="n">owned</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">log_time</span><span class="p">(</span><span class="s2">&quot;Indexing&quot;</span><span class="p">,</span> <span class="n">index_path</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">paths</span><span class="p">,))</span>
+
+    <span class="k">return</span> <span class="n">Find</span><span class="p">(</span>
+        <span class="n">cutoff</span><span class="o">=</span><span class="n">cutoff</span><span class="p">,</span>
+        <span class="n">globs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;blacklisted&quot;</span><span class="p">],</span>
+        <span class="n">downloading</span><span class="o">=</span><span class="n">downloading</span><span class="o">.</span><span class="n">names</span><span class="p">,</span>
+        <span class="n">blacklisted</span><span class="o">=</span><span class="n">blacklistio</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+        <span class="n">owned</span><span class="o">=</span><span class="n">owned</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="index_path"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.find.index_path">[docs]</a><span class="k">def</span> <span class="nf">index_path</span><span class="p">(</span><span class="n">paths</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;get list of all system files with the wildcard glob pattern to</span>
+<span class="sd">    ``pathlib.Path``.</span>
+
+<span class="sd">    :param paths:   List of paths that the user has configured to</span>
+<span class="sd">                    analyze for files.</span>
+<span class="sd">    :return:        List of indexed file basenames (not their full</span>
+<span class="sd">                    path).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="n">pathobj</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">pathobj</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">files</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../categorpy.html">categorpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">README</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.find</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Stephen Whitlock.
+    </div>
+  </body>
+</html>

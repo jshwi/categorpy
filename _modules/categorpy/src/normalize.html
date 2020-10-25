@@ -1,0 +1,281 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>categorpy.src.normalize &#8212; categorpy 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/graphite.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.normalize</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for categorpy.src.normalize</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">normalize</span>
+<span class="sd">=========</span>
+
+<span class="sd">Use regular expressions and string manipulation methods to turn</span>
+<span class="sd">hard-to-read content into human-readable content which will make it</span>
+<span class="sd">easier to draw comparisons between strings.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">urllib</span> <span class="kn">import</span> <span class="n">parse</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">log</span>
+
+
+<div class="viewcode-block" id="File"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.File">[docs]</a><span class="k">class</span> <span class="nc">File</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Format strings to a uniform syntax</span>
+
+<span class="sd">    :param string: String to manipulate and use.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string</span> <span class="o">=</span> <span class="n">string</span>
+
+<div class="viewcode-block" id="File.normalize_whitespace"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.File.normalize_whitespace">[docs]</a>    <span class="k">def</span> <span class="nf">normalize_whitespace</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert all instances of dots and underscores to separate</span>
+<span class="sd">        words as whitespace.</span>
+
+<span class="sd">        :return: Human readable sentence separated by whitespace.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="File.normalize_non_alpha_numeric"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.File.normalize_non_alpha_numeric">[docs]</a>    <span class="k">def</span> <span class="nf">normalize_non_alpha_numeric</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove such characters as pluses and minuses etc. and replace</span>
+<span class="sd">        with whitespace.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;([^\s\w]|_)+&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">string</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="File.set_lowercase"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.File.set_lowercase">[docs]</a>    <span class="k">def</span> <span class="nf">set_lowercase</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove all case variances.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="File.deduplicate_whitespace"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.File.deduplicate_whitespace">[docs]</a>    <span class="k">def</span> <span class="nf">deduplicate_whitespace</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If several characters have been replaced with whitespace then</span>
+<span class="sd">        multiple spaces in the sentence can throw off a comparison</span>
+<span class="sd">        search.</span>
+
+<span class="sd">        Make sure multiple whitespace occurrences are replaced with a</span>
+<span class="sd">        single space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="File.normalize"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.File.normalize">[docs]</a>    <span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run all the regexes and string manipulations to normalize a</span>
+<span class="sd">        string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_lowercase</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize_whitespace</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize_non_alpha_numeric</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deduplicate_whitespace</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="Magnet"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Magnet">[docs]</a><span class="k">class</span> <span class="nc">Magnet</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Get the name of a magnet-link file</span>
+
+<span class="sd">    :param magnet: Magnet file&#39;s contents parsed with ``bencode.py``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">magnet</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnet</span> <span class="o">=</span> <span class="n">magnet</span>
+
+<div class="viewcode-block" id="Magnet.remove_equals"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Magnet.remove_equals">[docs]</a>    <span class="k">def</span> <span class="nf">remove_equals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Separate the words by whitespace instead of an equals</span>
+<span class="sd">        sign.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnet</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">magnet</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)[</span><span class="mi">2</span><span class="p">:])</span></div>
+
+<div class="viewcode-block" id="Magnet.remove_last_delim"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Magnet.remove_last_delim">[docs]</a>    <span class="k">def</span> <span class="nf">remove_last_delim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove the last delimiter from the magnet&#39;s contents.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnet</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">magnet</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;&amp;tr&quot;</span><span class="p">)[:</span><span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Magnet.remove_underscore"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Magnet.remove_underscore">[docs]</a>    <span class="k">def</span> <span class="nf">remove_underscore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Separate the words by whitespace instead of an underscore.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">magnet</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Magnet.remove_quotes"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Magnet.remove_quotes">[docs]</a>    <span class="k">def</span> <span class="nf">remove_quotes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove the quotes from a magnet links content.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnet</span> <span class="o">=</span> <span class="n">parse</span><span class="o">.</span><span class="n">unquote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">magnet</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Magnet.remove_tuple"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Magnet.remove_tuple">[docs]</a>    <span class="k">def</span> <span class="nf">remove_tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove the tuple from a magnet-link with regular</span>
+<span class="sd">        expressions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">removelist</span> <span class="o">=</span> <span class="s2">&quot;()&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnet</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
+            <span class="s2">&quot; +&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[^\w&quot;</span> <span class="o">+</span> <span class="n">removelist</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">magnet</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Magnet.normalize"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Magnet.normalize">[docs]</a>    <span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Combine all methods to manipulate and change the magnet</span>
+<span class="sd">        content.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_equals</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_last_delim</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_underscore</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_quotes</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_tuple</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Analyze a dictionary object recursively to decode all nested</span>
+<span class="sd">    values containing ``bytes``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_is_bytes</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Determine whether a a value is a ``bytes`` object.</span>
+
+<span class="sd">        :param item:    The value to test.</span>
+<span class="sd">        :return:        True: is ``bytes``, False: is not.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Decoder.decode_key"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Decoder.decode_key">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">decode_key</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If ``key`` is type ``bytes`` return decoded ``str`` object,</span>
+<span class="sd">        if not then nothing needs to be done - return the original</span>
+<span class="sd">        object.</span>
+
+<span class="sd">        :param key: Dictionary key.</span>
+<span class="sd">        :return:    Return a decoded ``str``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_is_bytes</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">key</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">key</span></div>
+
+<div class="viewcode-block" id="Decoder.decode_val"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Decoder.decode_val">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">decode_val</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A value belonging to a key-value pair can be any object so</span>
+<span class="sd">        if the object is not bytes begin the iteration again to iterate</span>
+<span class="sd">        and decode over any ``list``, ``dict`` or ``bytes`` object</span>
+<span class="sd">        further down.</span>
+
+<span class="sd">        :param val: ``str``, ``list``, ``dict`` or ``bytes``.</span>
+<span class="sd">        :return:    ``list``, ``dict`` or ``str``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_is_bytes</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">val</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Decoder.decode_dict"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Decoder.decode_dict">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">decode_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">_object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pass a ``dict`` object to recursively analyze for values</span>
+<span class="sd">        which are the type ``bytes``.</span>
+
+<span class="sd">        :param _object: The ``dict`` object.</span>
+<span class="sd">        :return:        Analyzed and altered ``dict`` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">_object</span><span class="p">):</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">_object</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">decode_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">_object</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">decode_val</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_object</span></div>
+
+<div class="viewcode-block" id="Decoder.decode_list"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Decoder.decode_list">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">decode_list</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">_object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pass a ``list`` object to recursively analyze for values</span>
+<span class="sd">        which are the type ``bytes``.</span>
+
+<span class="sd">        :param _object: The ``list`` object.</span>
+<span class="sd">        :return:        Analyzed and altered ``list`` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">_object</span><span class="p">):</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">_object</span><span class="p">[</span><span class="n">count</span><span class="p">]</span>
+            <span class="n">_object</span><span class="p">[</span><span class="n">count</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">decode_val</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_object</span></div>
+
+<div class="viewcode-block" id="Decoder.decode"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.normalize.Decoder.decode">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">_object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Recursively go through a ``list`` or ``dict`` object -</span>
+<span class="sd">        ignoring the ``UnicodeDecodeError`` that may occur.</span>
+
+<span class="sd">        :param _object: The ``list`` or ``dict`` object.</span>
+<span class="sd">        :return:        Analyzed and altered ``list`` or ``dict``</span>
+<span class="sd">                        object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_object</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">decode_dict</span><span class="p">(</span><span class="n">_object</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_object</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">decode_list</span><span class="p">(</span><span class="n">_object</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">UnicodeDecodeError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">errlogger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+            <span class="n">errlogger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">_object</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../categorpy.html">categorpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">README</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.normalize</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Stephen Whitlock.
+    </div>
+  </body>
+</html>

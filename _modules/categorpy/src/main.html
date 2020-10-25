@@ -1,0 +1,224 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>categorpy.src.main &#8212; categorpy 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/graphite.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.main</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for categorpy.src.main</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">main</span>
+<span class="sd">====</span>
+
+<span class="sd">The entire package&#39;s main</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">redirect_stdout</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">client</span><span class="p">,</span> <span class="n">find</span><span class="p">,</span> <span class="n">locate</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">textio</span>
+
+
+<div class="viewcode-block" id="Parser"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.main.Parser">[docs]</a><span class="k">class</span> <span class="nc">Parser</span><span class="p">(</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse the path selected for downloaded files, the torrent-dir</span>
+<span class="sd">    to check for existing downloads and the url to scrape. Collect the</span>
+<span class="sd">    number argument for custom page numbers and ranges. Determine</span>
+<span class="sd">    whether running in `inspect` mode or whether downloads will be</span>
+<span class="sd">    initialized.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># noinspection PyTypeChecker</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">prog</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\u001b</span><span class="s2">[0;36;40m</span><span class="si">{</span><span class="n">locate</span><span class="o">.</span><span class="n">APP</span><span class="o">.</span><span class="n">appname</span><span class="si">}</span><span class="se">\u001b</span><span class="s2">[0;0m&quot;</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">&quot;Run with no arguments to scrape the last entered url and &quot;</span>
+                <span class="s2">&quot;begin seeding with `transmission-daemon&#39;. Tweak the page &quot;</span>
+                <span class="s2">&quot;number of the url history with the `page&#39; argument - enter &quot;</span>
+                <span class="s2">&quot;either a single page number or a range. If no url has been &quot;</span>
+                <span class="s2">&quot;supplied prior, however, the program will not be able to run &quot;</span>
+                <span class="s2">&quot;without the `url&#39; argument followed by the url you wish to &quot;</span>
+                <span class="s2">&quot;scrape. Increase or decrease the default cutoff used for &quot;</span>
+                <span class="s2">&quot;checking similarity between already owned and blacklisted &quot;</span>
+                <span class="s2">&quot;files.&quot;</span>
+            <span class="p">),</span>
+            <span class="n">formatter_class</span><span class="o">=</span><span class="k">lambda</span> <span class="n">prog</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">HelpFormatter</span><span class="p">(</span>
+                <span class="n">prog</span><span class="p">,</span> <span class="n">max_help_position</span><span class="o">=</span><span class="mi">55</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_arguments</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_add_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;-u&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--url&quot;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;HISTORY&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;scrape new url or the last url entered&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;-c&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--cutoff&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store&quot;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;70&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;70&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">&quot;cutoff percentage when excluding torrents by word similarity&quot;</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;-p&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--page&quot;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;INT or START-END&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;scrape a single digit page number or a range e.g. 1-5&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;-d&quot;</span><span class="p">,</span> <span class="s2">&quot;--debug&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">SUPPRESS</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_url"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.main.parse_url">[docs]</a><span class="k">def</span> <span class="nf">parse_url</span><span class="p">(</span><span class="n">argparser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse the history file for the last entry added to the json</span>
+<span class="sd">    object. If no history has been recorded notify the user and print</span>
+<span class="sd">    the argparse help.</span>
+
+<span class="sd">    :param argparser:   ``argparse.ArgumentParser`` ``Namespace`` which</span>
+<span class="sd">                        contains the ``url`` parameter and the</span>
+<span class="sd">                        ``print_help`` method.</span>
+<span class="sd">    :return:            URL to scrape for torrents.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">history</span> <span class="o">=</span> <span class="n">textio</span><span class="o">.</span><span class="n">JsonIO</span><span class="p">(</span><span class="n">locate</span><span class="o">.</span><span class="n">APP</span><span class="o">.</span><span class="n">histfile</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">history</span><span class="o">.</span><span class="n">object</span><span class="p">[</span><span class="s2">&quot;history&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]</span>
+        <span class="n">textio</span><span class="o">.</span><span class="n">record_hist</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">url</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">redirect_stdout</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\u001b</span><span class="s2">[0;31;40myou have no search history</span><span class="se">\u001b</span><span class="s2">[0;0m&quot;</span><span class="p">)</span>
+            <span class="n">argparser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+        <span class="n">errlogger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+        <span class="n">errlogger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_namespace"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.main.get_namespace">[docs]</a><span class="k">def</span> <span class="nf">get_namespace</span><span class="p">(</span><span class="n">argparser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Complete the ``argparse`` ``Namespace`` object by populating the</span>
+<span class="sd">    ``url`` object if one needs to be populated and one can be populated</span>
+<span class="sd">    (else raise error) then return the ``Namespace`` object from</span>
+<span class="sd">    ``argparse``.</span>
+
+<span class="sd">    :param argparser:   Instantiated ``argparse.ArgumentParser`` object</span>
+<span class="sd">                        for commandline arguments.</span>
+<span class="sd">    :return:            Instantiated ``argparse.Namespace`` object for</span>
+<span class="sd">                        commandline arguments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">argparser</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">url</span><span class="p">:</span>
+        <span class="n">argparser</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">parse_url</span><span class="p">(</span><span class="n">argparser</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">argparser</span><span class="o">.</span><span class="n">args</span></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.main.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Begin by parsing commandline arguments and returning</span>
+<span class="sd">    ``parser.Parser`` object. Get the ``INFO`` or ``DEBUG`` loglevel</span>
+<span class="sd">    ``logger``, depending on the commandline arguments passed. Get the</span>
+<span class="sd">    instantiated ``find.Find`` object containing the parsed blacklist</span>
+<span class="sd">    and paths files as well as the indexed paths. Handle</span>
+<span class="sd">    ``KeyboardInterrupt`` and ``EOFError`` for the main processes</span>
+<span class="sd">    cleanly. Allow for ``KeyboardInterrupt`` and ``EOFError``</span>
+<span class="sd">    stack-trace to be logged if running with</span>
+<span class="sd">    ``argparser.args.debug is True``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">argparser</span> <span class="o">=</span> <span class="n">Parser</span><span class="p">()</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">initialize_loggers</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">argparser</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">get_namespace</span><span class="p">(</span><span class="n">argparser</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">findobj</span> <span class="o">=</span> <span class="n">find</span><span class="o">.</span><span class="n">instantiate_find</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">cutoff</span><span class="p">))</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">log_time</span><span class="p">(</span>
+            <span class="s2">&quot;Finding torrents&quot;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">transmission</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">findobj</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyboardInterrupt</span><span class="p">,</span> <span class="ne">EOFError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\u001b</span><span class="s2">[0;31;40mProcess Terminated</span><span class="se">\u001b</span><span class="s2">[0;0m&quot;</span><span class="p">)</span>
+        <span class="n">errlogger</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+        <span class="n">errlogger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">),</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../categorpy.html">categorpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">README</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.main</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Stephen Whitlock.
+    </div>
+  </body>
+</html>

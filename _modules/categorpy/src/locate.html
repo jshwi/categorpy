@@ -1,0 +1,146 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>categorpy.src.locate &#8212; categorpy 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/graphite.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.locate</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for categorpy.src.locate</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">locate</span>
+<span class="sd">======</span>
+
+<span class="sd">Define environment for navigating system.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+
+<span class="kn">import</span> <span class="nn">appdirs</span>
+
+<span class="n">APPNAME</span> <span class="o">=</span> <span class="s2">&quot;categorpy&quot;</span>
+
+
+<div class="viewcode-block" id="AppDirs"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.locate.AppDirs">[docs]</a><span class="k">class</span> <span class="nc">AppDirs</span><span class="p">(</span><span class="n">appdirs</span><span class="o">.</span><span class="n">AppDirs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Application directories for package inheriting ``AppDirs`` from</span>
+<span class="sd">    module ``appdirs``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">appname</span><span class="o">=</span><span class="n">APPNAME</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_appdirs</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user_config_dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_config_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">user_config_dirname</span><span class="p">,</span> <span class="s2">&quot;transmission-daemon&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_appdirs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># create directories for persistent data storage for app.</span>
+        <span class="n">dirs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">user_cache_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_config_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_log_dir</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">_dir</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">_dir</span><span class="p">)</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AppFiles"><a class="viewcode-back" href="../../../categorpy.html#categorpy.src.locate.AppFiles">[docs]</a><span class="k">class</span> <span class="nc">AppFiles</span><span class="p">(</span><span class="n">AppDirs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Application file paths inheriting ``AppDirs`` for directory</span>
+<span class="sd">    paths.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">histfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_cache_dir</span><span class="p">,</span> <span class="s2">&quot;history&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blacklist</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_config_dir</span><span class="p">,</span> <span class="s2">&quot;blacklist&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_config_dir</span><span class="p">,</span> <span class="s2">&quot;paths&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_config_dir</span><span class="p">,</span> <span class="s2">&quot;config.ini&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">torrents</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client_dir</span><span class="p">,</span> <span class="s2">&quot;torrents&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client_dir</span><span class="p">,</span> <span class="s2">&quot;settings.json&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_appfiles</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_appfiles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># create empty files for persistent data storage for app so user</span>
+        <span class="c1"># knows what files will be recognised by the process</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">histfile</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">blacklist</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span></div>
+
+
+<span class="n">APP</span> <span class="o">=</span> <span class="n">AppFiles</span><span class="p">()</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../categorpy.html">categorpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">README</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">categorpy.src.locate</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Stephen Whitlock.
+    </div>
+  </body>
+</html>

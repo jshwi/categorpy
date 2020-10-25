@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>README &#8212; categorpy 1.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/graphite.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="categorpy" href="categorpy.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="categorpy.html" title="categorpy"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">README</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="readme">
+<h1>README<a class="headerlink" href="#readme" title="Permalink to this headline">¶</a></h1>
+<a class="reference external image-reference" href="https://www.python.org/downloads/release/python-380"><img alt="python3.8" src="https://img.shields.io/badge/python-3.8-blue.svg" /></a>
+<a class="reference external image-reference" href="https://travis-ci.com/jshwi/categorpy"><img alt="travis-ci.com" src="https://travis-ci.com/jshwi/categorpy.svg?branch=master" /></a>
+<a class="reference external image-reference" href="https://codecov.io/gh/jshwi/categorpy"><img alt="codecov.io" src="https://codecov.io/gh/jshwi/categorpy/branch/master/graph/badge.svg" /></a>
+<a class="reference external image-reference" href="https://categorpy.readthedocs.io/en/latest/?badge=latest"><img alt="readthedocs.org" src="https://readthedocs.org/projects/categorpy/badge/?version=latest" /></a>
+<a class="reference external image-reference" href="https://lbesson.mit-license.org/"><img alt="mit" src="https://img.shields.io/badge/License-MIT-blue.svg" /></a>
+<a class="reference external image-reference" href="https://github.com/psf/black"><img alt="black" src="https://img.shields.io/badge/code%20style-black-000000.svg" /></a>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Turbo charged torrent scraper for `transmission-daemon&#39;</span>
+
+<span class="go">Scrape entered url for torrents you don&#39;t have and automatically load them into the daemon.</span>
+
+<span class="go">Blacklist files you are not interested in.</span>
+
+<span class="go">Scans system for files you already own.</span>
+
+<span class="go">Acknowledges files which are already downloading.</span>
+</pre></div>
+</div>
+<p>Usage:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">categorpy [-h] [-u HISTORY] [-c 70] [-p INT or START-END]</span>
+
+<span class="go">Run with no arguments to scrape the last entered url and begin seeding with `transmission-daemon&#39;.</span>
+<span class="go">Tweak the page number of the url history with the `page&#39; argument - enter either a single page</span>
+<span class="go">number or a range.</span>
+<span class="go">If no url has been supplied prior, however, the program will not be able to run without the</span>
+<span class="go">`url&#39; argument followed by the url you wish to scrape.</span>
+<span class="go">Increase or decrease the default cutoff used for checking similarity between already owned and</span>
+<span class="go">blacklisted files.</span>
+
+<span class="go">optional arguments:</span>
+<span class="go">  -h, --help                                    show this help message and exit</span>
+<span class="go">  -u HISTORY, --url HISTORY                     scrape new url or the last url entered</span>
+<span class="go">  -c 70, --cutoff 70                            cutoff percentage when excluding torrents by word</span>
+<span class="go">                                                similarity</span>
+<span class="go">  -p INT or START-END, --page INT or START-END  scrape a single digit page number or a range e.g.</span>
+<span class="go">                                                1-5</span>
+</pre></div>
+</div>
+<p>Quick-Start:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> <span class="c1"># download torrents from one page</span>
+<span class="gp">$</span> categorpy --url <span class="s2">&quot;https://www.exampleurl/s/page/1&quot;</span>
+
+<span class="gp">$</span> <span class="c1"># download torrents from alternative page with saved history</span>
+<span class="gp">$</span> categorpy --page <span class="m">4</span>  <span class="c1"># url == &quot;https://www.exampleurl/s/page/4&quot;</span>
+
+<span class="gp">$</span> <span class="c1"># download torrents from a range of of pages with saved history</span>
+<span class="gp">$</span> categorpy --page <span class="m">1</span>-10
+</pre></div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="categorpy.html">categorpy</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">README</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="categorpy.html" title="categorpy"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">categorpy 1.0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">README</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Stephen Whitlock.
+    </div>
+  </body>
+</html>
